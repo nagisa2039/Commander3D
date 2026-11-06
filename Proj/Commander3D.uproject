@@ -1,6 +1,6 @@
 {
 	"FileVersion": 3,
-	"EngineAssociation": "{A57DE9E6-45A1-3C7D-D072-22913E311A68}",
+	"EngineAssociation": "5.8",
 	"Category": "",
 	"Description": "",
 	"Modules": [
@@ -26,6 +26,10 @@
 		}
 	],
 	"Plugins": [
+		{
+			"Name": "AndroidFileServer",
+			"Enabled": false
+		},
 		{
 			"Name": "ModelingToolsEditorMode",
 			"Enabled": true,
