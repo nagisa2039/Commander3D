@@ -22,11 +22,9 @@ Thumbs.db
 .claude/settings.local.json
 CLAUDE.local.md
 
-# Scratch / generated output (folders kept via .gitkeep)
-.claude/temp/*
-.claude/output/*
-!.claude/temp/.gitkeep
-!.claude/output/.gitkeep
+# Claude Code scratch / generated output
+.claude/temp/
+.claude/output/
 
 # Generated Visual Studio solutions
 *.sln
