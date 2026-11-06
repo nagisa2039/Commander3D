@@ -8,8 +8,12 @@ public class Commander3D : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 	
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput" });
-
-		PrivateDependencyModuleNames.AddRange(new string[] {  });
+		// No public headers expose these yet, so everything is Private. Move a module to Public
+		// only when a public header of this module needs its types.
+		PrivateDependencyModuleNames.AddRange(new string[]
+		{
+			"Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput",
+			"CommanderDomain", "CommanderApplication"
+		});
 	}
 }
