@@ -5,8 +5,23 @@
 	"Description": "",
 	"Modules": [
 		{
+			"Name": "CommanderDomain",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		},
+		{
+			"Name": "CommanderApplication",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		},
+		{
 			"Name": "Commander3D",
 			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		},
+		{
+			"Name": "CommanderTests",
+			"Type": "Editor",
 			"LoadingPhase": "Default"
 		}
 	],

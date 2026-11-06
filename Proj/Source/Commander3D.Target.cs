@@ -10,6 +10,6 @@ public class Commander3DTarget : TargetRules
 		Type = TargetType.Game;
 		DefaultBuildSettings = BuildSettingsVersion.V7;
 		IncludeOrderVersion = EngineIncludeOrderVersion.Unreal5_8;
-		ExtraModuleNames.Add("Commander3D");
+		ExtraModuleNames.AddRange(new string[] { "CommanderDomain", "CommanderApplication", "Commander3D" });
 	}
 }
