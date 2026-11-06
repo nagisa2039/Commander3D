@@ -18,3 +18,12 @@ Build/
 # OS
 .DS_Store
 Thumbs.db
+# Claude Code (personal)
+.claude/settings.local.json
+CLAUDE.local.md
+
+# Scratch / generated output (folders kept via .gitkeep)
+.claude/temp/*
+.claude/output/*
+!.claude/temp/.gitkeep
+!.claude/output/.gitkeep
