@@ -31,3 +31,7 @@ CLAUDE.local.md
 # Generated Visual Studio solutions
 *.sln
 *.slnx
+
+# Python
+__pycache__/
+*.pyc
