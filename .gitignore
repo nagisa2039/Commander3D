@@ -13,7 +13,7 @@ Saved/
 .idea/
 
 # Build
-Build/
+/Proj/Build/
 
 # OS
 .DS_Store
@@ -27,3 +27,7 @@ CLAUDE.local.md
 .claude/output/*
 !.claude/temp/.gitkeep
 !.claude/output/.gitkeep
+
+# Generated Visual Studio solutions
+*.sln
+*.slnx
