@@ -11,7 +11,7 @@ Commander3D: Unreal Engine 5.8 / C++ で作る3Dターン制SRPG(初代Fire Embl
 
 1. **計画を先に出す。** 複数ファイルにまたがる変更は、実装前に方針と変更対象を提示する。
 2. **テスト先行。** ルール(Domain/Application)は、失敗するテストを先に書いてから実装する。
-3. **Domain/ApplicationにUE依存を入れない。** `CoreMinimal.h`、`U/A/F` 型、`TArray`、`FString` などは禁止。C++標準のみ。`Tools/CheckDomainPurity` で検出する(作成予定)。
+3. **Domain/ApplicationにUE依存を入れない。** `CoreMinimal.h`、`U/A/F` 型、`TArray`、`FString` などは禁止。C++標準のみ。`python Tools/CheckDomainPurity/check_domain_purity.py` で検出する。
 4. **ルールはDomainに置く。** Actor / Component / UI / Blueprint は表示だけを担当し、ルールとCommand発行を書かない。PresentationはDomainが返すEventを再生する。
 5. **推測で抽象化しない。** 具体的な2つ目の用途が出るまで、インターフェースや汎用化を作らない。ダメージ式の事前インターフェース化、ECS、Event Sourcing、汎用ルールエンジン、DIコンテナは作らない。
 6. **例外を使わない。** 失敗は `Result` で返す。
