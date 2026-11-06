@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git branch:*)",
+      "PowerShell(Get-ChildItem *)",
+      "PowerShell(Get-Command *)",
+      "PowerShell(Get-Item *)",
+      "PowerShell(Get-Location)",
+      "PowerShell(Resolve-Path *)",
+      "PowerShell(Test-Path *)",
+      "PowerShell(Select-String *)",
+      "PowerShell(Measure-Object *)",
+      "PowerShell(Get-FileHash *)",
+      "PowerShell(Get-Date *)",
+      "Bash(dotnet --list-sdks)",
+      "Bash(dotnet --list-runtimes)",
+      "PowerShell(dotnet --list-sdks)",
+      "PowerShell(dotnet --list-runtimes)"
+    ],
+    "deny": [
+      "Read(./Proj/Intermediate/**)",
+      "Read(./Proj/Binaries/**)",
+      "Read(./Proj/DerivedDataCache/**)",
+      "Read(./Proj/Saved/**)",
+      "Read(./Proj/.vs/**)"
+    ]
+  }
+}
