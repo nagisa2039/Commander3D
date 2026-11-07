@@ -2,6 +2,8 @@
 
 #include "CoreMinimal.h"
 
+#include "Dom/JsonObject.h"
+
 #include "Battle/BattleSetup.h"
 #include "Common/Result.h"
 #include "Infrastructure/ClassJsonParser.h"
@@ -31,6 +33,8 @@ struct FBattleDataTables
 struct FBattleDefinition
 {
 	FString MapName;
+	FString Name;                                       // optional "name" (chapter title); empty if absent
+	TArray<commander::domain::GridCoord> StartCells;    // optional "startCells": where a chapter's sortie members start
 	commander::application::BattleSetup Setup; // Setup.Map is left empty; the loader fills it from MapName.
 };
 
@@ -49,7 +53,9 @@ struct FBattleDefinition
 //                "weaponRanks": {"sword": 1},         // optional starting ranks (0..3) by weapon type name
 //                "boss": false } ],         // optional
 //   "gold": 500,                            // optional: the player army's gold
-//   "shops": [ { "x": 2, "y": 1, "stock": ["vulnerary", "iron_sword"] } ]   // optional; ids as in "items"
+//   "shops": [ { "x": 2, "y": 1, "stock": ["vulnerary", "iron_sword"] } ],  // optional; ids as in "items"
+//   "name": "Chapter 1",                    // optional: chapter title
+//   "startCells": [ {"x": 0, "y": 0} ]      // optional: sortie start cells of a chapter, in deploy order
 // }
 //
 // "hp" sets both Hp and MaxHp. Game rules (positions, ranges, both sides present, boss present) are checked
@@ -58,4 +64,8 @@ class COMMANDER3D_API FBattleJsonParser
 {
 public:
 	static commander::application::Result<FBattleDefinition, EBattleJsonError> Parse(const FString& JsonText, const FBattleDataTables& Tables);
+
+	// Reads one roster member from a unit object with the same keys as "units" entries, except that "side"
+	// (always player), "x" and "y" (not used) are optional. Rule validation is left to Roster::Add.
+	static EBattleJsonError ParseRosterUnit(const TSharedPtr<FJsonObject>& Object, const FBattleDataTables& Tables, commander::domain::BattleUnit& Out);
 };

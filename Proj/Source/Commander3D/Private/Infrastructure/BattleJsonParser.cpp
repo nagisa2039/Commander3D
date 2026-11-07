@@ -114,16 +114,20 @@ EBattleJsonError ApplyClass(const FBattleDataTables& Tables, const FString& Clas
 }
 
 // Fills Unit from a JSON object. Returns None on success.
-EBattleJsonError ReadUnit(const TSharedPtr<FJsonObject>& Object, const FBattleDataTables& Tables, commander::domain::BattleUnit& Unit)
+// A roster entry (bRosterEntry) is always a player unit and needs no position.
+EBattleJsonError ReadUnit(const TSharedPtr<FJsonObject>& Object, const FBattleDataTables& Tables, commander::domain::BattleUnit& Unit, bool bRosterEntry = false)
 {
 	using commander::domain::Faction;
 
 	int64 Id = 0;
-	FString Side;
+	FString Side = bRosterEntry ? FString(TEXT("player")) : FString();
 	FString ClassId;
 	TArray<FString> ItemIds;
-	if (!JsonRead::ReadIntFieldInRange(Object, TEXT("id"), 0, MAX_uint32, Id) || !JsonRead::ReadStringField(Object, TEXT("side"), Side)
-		|| !JsonRead::ReadInt32Field(Object, TEXT("x"), Unit.Position.X) || !JsonRead::ReadInt32Field(Object, TEXT("y"), Unit.Position.Y)
+	const bool bPositionOk = bRosterEntry
+		? JsonRead::ReadOptionalInt32Field(Object, TEXT("x"), Unit.Position.X) && JsonRead::ReadOptionalInt32Field(Object, TEXT("y"), Unit.Position.Y)
+		: JsonRead::ReadInt32Field(Object, TEXT("x"), Unit.Position.X) && JsonRead::ReadInt32Field(Object, TEXT("y"), Unit.Position.Y);
+	const bool bSideOk = bRosterEntry ? JsonRead::ReadOptionalStringField(Object, TEXT("side"), Side) : JsonRead::ReadStringField(Object, TEXT("side"), Side);
+	if (!JsonRead::ReadIntFieldInRange(Object, TEXT("id"), 0, MAX_uint32, Id) || !bSideOk || !bPositionOk
 		|| !JsonRead::ReadInt32Field(Object, TEXT("hp"), Unit.Hp)
 		|| !JsonRead::ReadInt32Field(Object, TEXT("strength"), Unit.Strength) || !JsonRead::ReadInt32Field(Object, TEXT("skill"), Unit.Skill)
 		|| !JsonRead::ReadInt32Field(Object, TEXT("speed"), Unit.Speed) || !JsonRead::ReadInt32Field(Object, TEXT("defense"), Unit.Defense)
@@ -199,6 +203,31 @@ EBattleJsonError ReadUnit(const TSharedPtr<FJsonObject>& Object, const FBattleDa
 	return EBattleJsonError::None;
 }
 
+bool ReadStartCells(const TSharedPtr<FJsonObject>& Root, TArray<commander::domain::GridCoord>& Out)
+{
+	if (!Root->HasField(TEXT("startCells")))
+	{
+		return true;
+	}
+	const TArray<TSharedPtr<FJsonValue>>* Entries = nullptr;
+	if (!Root->TryGetArrayField(TEXT("startCells"), Entries))
+	{
+		return false;
+	}
+	for (const TSharedPtr<FJsonValue>& Entry : *Entries)
+	{
+		const TSharedPtr<FJsonObject>* Object = nullptr;
+		commander::domain::GridCoord Cell;
+		if (!Entry.IsValid() || !Entry->TryGetObject(Object) || !JsonRead::ReadInt32Field(*Object, TEXT("x"), Cell.X)
+			|| !JsonRead::ReadInt32Field(*Object, TEXT("y"), Cell.Y))
+		{
+			return false;
+		}
+		Out.Add(Cell);
+	}
+	return true;
+}
+
 EBattleJsonError ReadShops(const TSharedPtr<FJsonObject>& Root, const FBattleDataTables& Tables, std::vector<commander::domain::Shop>& Out)
 {
 	if (!Root->HasField(TEXT("shops")))
@@ -236,6 +265,11 @@ EBattleJsonError ReadShops(const TSharedPtr<FJsonObject>& Root, const FBattleDat
 }
 } // namespace
 
+EBattleJsonError FBattleJsonParser::ParseRosterUnit(const TSharedPtr<FJsonObject>& Object, const FBattleDataTables& Tables, commander::domain::BattleUnit& Out)
+{
+	return Object.IsValid() ? ReadUnit(Object, Tables, Out, true) : EBattleJsonError::InvalidField;
+}
+
 commander::application::Result<FBattleDefinition, EBattleJsonError> FBattleJsonParser::Parse(const FString& JsonText, const FBattleDataTables& Tables)
 {
 	TSharedPtr<FJsonObject> Root;
@@ -267,6 +301,11 @@ commander::application::Result<FBattleDefinition, EBattleJsonError> FBattleJsonP
 			return ParseResult::Err(Error);
 		}
 		Definition.Setup.Units.push_back(Unit);
+	}
+
+	if (!JsonRead::ReadOptionalStringField(Root, TEXT("name"), Definition.Name) || !ReadStartCells(Root, Definition.StartCells))
+	{
+		return ParseResult::Err(EBattleJsonError::InvalidField);
 	}
 
 	const EBattleJsonError ShopError = ReadShops(Root, Tables, Definition.Setup.Shops);

@@ -1,0 +1,13 @@
+{
+	"name": "Test Chapter",
+	"map": "test_map",
+	"conditions": {"routEnemies": true, "defeatBoss": true, "turnLimit": 20},
+	"startCells": [{"x": 0, "y": 0}, {"x": 0, "y": 2}],
+	"shops": [
+		{"x": 0, "y": 1, "stock": ["vulnerary", "repair_kit"]}
+	],
+	"units": [
+		{"id": 101, "side": "enemy", "x": 4, "y": 0, "class": "brute", "hp": 22, "strength": 6, "skill": 3, "speed": 3, "defense": 4, "weapon": "iron_sword", "boss": true, "level": 5},
+		{"id": 102, "side": "enemy", "x": 4, "y": 2, "class": "soldier", "hp": 16, "strength": 4, "skill": 2, "speed": 4, "defense": 1, "weapon": "iron_sword"}
+	]
+}

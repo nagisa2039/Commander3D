@@ -1,0 +1,8 @@
+{
+	"gold": 1000,
+	"roster": [
+		{"id": 1, "class": "soldier", "hp": 18, "strength": 5, "skill": 4, "speed": 6, "defense": 2, "weapon": "iron_sword", "weaponRanks": {"sword": 1}, "items": ["vulnerary", "repair_kit"]},
+		{"id": 2, "class": "archer", "movement": 4, "hp": 14, "strength": 3, "skill": 6, "speed": 5, "defense": 1, "weapon": "iron_bow", "items": ["iron_sword", "heal_staff"]}
+	],
+	"chapters": ["test_chapter"]
+}
