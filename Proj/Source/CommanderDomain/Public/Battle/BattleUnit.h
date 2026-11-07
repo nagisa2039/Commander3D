@@ -46,6 +46,7 @@ struct BattleUnit
 	std::int32_t Speed = 0;
 	std::int32_t Defense = 0;
 	WeaponSpec Weapon;
+	bool IsBoss = false;       // Used by the "defeat the boss" victory condition.
 };
 
 } // namespace commander::domain

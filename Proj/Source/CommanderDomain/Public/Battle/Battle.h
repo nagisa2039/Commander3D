@@ -10,6 +10,7 @@
 #include "Battle/Combat.h"
 #include "Battle/MovementRange.h"
 #include "Battle/RandomSource.h"
+#include "Battle/VictoryCondition.h"
 
 namespace commander::domain
 {
@@ -42,20 +43,26 @@ struct AttackResolved
 {
 	std::vector<Strike> Strikes;
 	std::vector<UnitId> Defeated;
+	BattleOutcome Outcome = BattleOutcome::Ongoing; // The battle's outcome after this attack.
 };
 
 // Event: a new faction phase began. Turn is the turn number it belongs to.
+// Outcome is the battle's outcome after the change (PlayerLost when the turn limit is exceeded).
 struct PhaseChanged
 {
 	Faction Side = Faction::Player;
 	std::int32_t Turn = 1;
+	BattleOutcome Outcome = BattleOutcome::Ongoing;
 };
 
 // One map's state: terrain plus the units on it. Aggregate root.
 class Battle
 {
 public:
-	explicit Battle(BattleMap InMap) : Map(std::move(InMap)) {}
+	explicit Battle(BattleMap InMap, VictoryConditions InConditions = {})
+		: Map(std::move(InMap)), Conditions(InConditions)
+	{
+	}
 
 	const BattleMap& GetMap() const { return Map; }
 	const std::vector<BattleUnit>& Units() const { return UnitList; }
@@ -98,6 +105,9 @@ public:
 		return nullptr;
 	}
 
+	// Ongoing until a defeat decides the battle (evaluated after each attack). Once decided,
+	// Move/Wait/Attack are rejected and EndPhase changes nothing.
+	BattleOutcome Outcome() const { return OutcomeValue; }
 	Faction CurrentFaction() const { return CurrentFactionValue; }
 	std::int32_t TurnNumber() const { return Turn; }
 
@@ -169,6 +179,8 @@ public:
 			}
 		}
 		std::erase_if(UnitList, [](const BattleUnit& U) { return U.Hp <= 0; });
+		OutcomeValue = EvaluateOutcome(UnitList, Conditions, Turn);
+		Result.Outcome = OutcomeValue;
 		return Result;
 	}
 
@@ -176,6 +188,10 @@ public:
 	// when control returns to the player.
 	PhaseChanged EndPhase()
 	{
+		if (OutcomeValue != BattleOutcome::Ongoing)
+		{
+			return PhaseChanged{CurrentFactionValue, Turn, OutcomeValue};
+		}
 		CurrentFactionValue = CurrentFactionValue == Faction::Player ? Faction::Enemy : Faction::Player;
 		if (CurrentFactionValue == Faction::Player)
 		{
@@ -186,7 +202,8 @@ public:
 			U.HasMoved = false;
 			U.HasActed = false;
 		}
-		return PhaseChanged{CurrentFactionValue, Turn};
+		OutcomeValue = EvaluateOutcome(UnitList, Conditions, Turn);
+		return PhaseChanged{CurrentFactionValue, Turn, OutcomeValue};
 	}
 
 private:
@@ -208,6 +225,10 @@ private:
 	BattleUnit* FindActionable(UnitId Id)
 	{
 		BattleUnit* Unit = FindMutable(Id);
+		if (OutcomeValue != BattleOutcome::Ongoing)
+		{
+			return nullptr;
+		}
 		return (Unit != nullptr && Unit->Side == CurrentFactionValue && !Unit->HasActed) ? Unit : nullptr;
 	}
 
@@ -224,9 +245,11 @@ private:
 	}
 
 	BattleMap Map;
+	VictoryConditions Conditions;
 	std::vector<BattleUnit> UnitList;
 	Faction CurrentFactionValue = Faction::Player;
 	std::int32_t Turn = 1;
+	BattleOutcome OutcomeValue = BattleOutcome::Ongoing;
 };
 
 } // namespace commander::domain
