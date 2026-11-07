@@ -38,3 +38,12 @@ Phase 8 = Roster / Campaign / save. This is the first part: persistent army + pr
 - Saves are for between battles: unit position/turn state and in-progress battles are not saved; Hp is MaxHp. The save includes item changes made in the current preparation (`Campaign::Roster()`), not the deployment choice.
 - Not decided: where `SaveDir` lives (e.g. `FPaths::ProjectSavedDir()/SaveGames`) is up to the caller; no auto-save / slot listing yet.
 - Tests: `Commander3D.Save.JsonRoundTrip`, `Commander3D.Save.StorageRoundTrip`; Automation 17/17.
+
+## Update: preparation shop + shared rules (2026-11-07)
+- **Refactor (no behaviour change)**: the equip / buy / sell rules were duplicated between `Battle` and `Roster`/`Preparation`. They now live in Domain helpers used by both: `EquipFromPack` (Progression.h), `BuyFromStock` and `SellFromPack` (Shop.h). `Battle::EquipWeapon/BuyItem/SellItem` and `Roster::EquipWeapon` call them; existing tests unchanged and green. Resolves the "equip rule is duplicated" note above.
+- **Preparation shop**: `BattleSetup::PreparationStock` (a chapter's items for sale; never runs out; each `Price` is the buying price), `Roster::BuyItem(id, stock, entry)` / `SellItem(id, slot)` (the roster's gold; sells for half), `Preparation::Stock()/BuyItem/SellItem`. `StartBattle` validates the stock (valid item, Price > 0) as `InvalidShop`. Gold left after shopping is carried into the battle.
+- JSON: battle / chapter files accept `"preparationStock": ["id", ...]` (weapon or item ids; unknown id = `UnknownItem`). Sample: `Chapters/test_chapter.json`.
+- Tests: `RosterTest` +1, `PreparationTest` +2, `BattleSetupTest` +1 (CTest 21/21); JSON tests extended; Automation 17/17.
+- Decision S1: the preparation shop is a chapter property (not a map cell), so it needs no unit position and works before deployment. The battle's map shops are unchanged.
+- Not done: enemy AI going for chests; UMG screens (see below).
+- UMG / `.uasset`: not made. Project rule 7 forbids creating or editing `.uasset`; screens must be built in the editor on top of `Preparation`, `Campaign` and the battle events.
