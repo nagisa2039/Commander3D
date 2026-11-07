@@ -191,8 +191,141 @@ static void AddUnitRejectsInconsistentWeapons()
 	CHECK(B.Units().size() == 1);
 }
 
+// A unit whose sword breaks after Durability uses and currently has Uses left.
+static BattleUnit Breakable(std::uint32_t Id, Faction Side, std::int32_t X, std::int32_t Hp, std::int32_t Durability, std::int32_t Uses)
+{
+	BattleUnit U = Fighter(Id, Side, X, Hp, 5, 0, WeaponSpec{3, 100, 1, 1, Durability});
+	U.WeaponUses = Uses;
+	return U;
+}
+
+static void EachStrikeConsumesOneUseForBothFighters()
+{
+	Battle B = MakeBattle({Breakable(1, Faction::Player, 0, 30, 5, 5), Breakable(2, Faction::Enemy, 1, 30, 4, 4)});
+	FixedRandom Rng({0});
+	const auto R = B.AttackUnit(UnitId{1}, UnitId{2}, Rng);
+	CHECK(R.has_value() && R->Strikes.size() == 2);
+	CHECK(B.FindUnit(UnitId{1})->WeaponUses == 4);
+	CHECK(B.FindUnit(UnitId{2})->WeaponUses == 3);
+	CHECK(R->Strikes[0].WeaponBroke == false && R->Strikes[1].WeaponBroke == false);
+}
+
+static void AMissStillConsumesAUse()
+{
+	BattleUnit Shaky = Breakable(1, Faction::Player, 0, 30, 3, 3);
+	Shaky.Weapon.Hit = 10; // hit rate 10, so a roll of 99 misses
+	Battle B = MakeBattle({Shaky, Fighter(2, Faction::Enemy, 1, 30, 4, 0, NoWeapon)});
+	FixedRandom Miss({99});
+	const auto R = B.AttackUnit(UnitId{1}, UnitId{2}, Miss);
+	CHECK(R.has_value() && !R->Strikes[0].Hit);
+	CHECK(B.FindUnit(UnitId{1})->WeaponUses == 2);
+}
+
+static void WeaponBreaksAtZeroUsesAndCannotBeUsedAgain()
+{
+	Battle B = MakeBattle({Breakable(1, Faction::Player, 0, 30, 3, 1), Fighter(2, Faction::Enemy, 1, 40, 4, 0, NoWeapon)});
+	FixedRandom Rng({0});
+	const auto R = B.AttackUnit(UnitId{1}, UnitId{2}, Rng);
+	CHECK(R.has_value() && R->Strikes[0].WeaponBroke);
+	CHECK(B.FindUnit(UnitId{1})->WeaponUses == 0);
+	B.EndPhase();
+	B.EndPhase();
+	CHECK(!B.AttackUnit(UnitId{1}, UnitId{2}, Rng).has_value()); // broken: no weapon left
+}
+
+static void BrokenWeaponCannotCounter()
+{
+	Battle B = MakeBattle({Fighter(1, Faction::Player, 0, 30, 5, 0, Sword), Breakable(2, Faction::Enemy, 1, 30, 3, 0)});
+	FixedRandom Rng({0});
+	const auto R = B.AttackUnit(UnitId{1}, UnitId{2}, Rng);
+	CHECK(R.has_value() && R->Strikes.size() == 1);
+	CHECK(B.FindUnit(UnitId{1})->Hp == 30);
+}
+
+static void TheWeaponThatBreaksOnTheFirstStrikeStillFacesACounter()
+{
+	// The attacker's last use is spent on the strike; the target (fresh weapon) counters.
+	Battle B = MakeBattle({Breakable(1, Faction::Player, 0, 30, 3, 1), Fighter(2, Faction::Enemy, 1, 40, 4, 0, Sword)});
+	FixedRandom Rng({0});
+	const auto R = B.AttackUnit(UnitId{1}, UnitId{2}, Rng);
+	CHECK(R.has_value() && R->Strikes.size() == 2);
+}
+
+static void WeaponsWithoutDurabilityNeverWear()
+{
+	Battle B = MakeBattle({Fighter(1, Faction::Player, 0, 30, 5, 0, Sword), Fighter(2, Faction::Enemy, 1, 40, 4, 0, Sword)});
+	FixedRandom Rng({0});
+	B.AttackUnit(UnitId{1}, UnitId{2}, Rng);
+	CHECK(B.FindUnit(UnitId{1})->WeaponUses == 0);
+	CHECK(B.FindUnit(UnitId{1})->Weapon.Durability == 0);
+	B.EndPhase();
+	B.EndPhase();
+	CHECK(B.AttackUnit(UnitId{1}, UnitId{2}, Rng).has_value()); // still usable with WeaponUses == 0
+}
+
+static void AddUnitRejectsInconsistentDurability()
+{
+	Battle B = MakeBattle({});
+	CHECK(!B.AddUnit(Breakable(1, Faction::Player, 0, 5, -1, 0)));  // negative durability
+	CHECK(!B.AddUnit(Breakable(2, Faction::Player, 1, 5, 3, 4)));   // more uses than durability
+	CHECK(!B.AddUnit(Breakable(3, Faction::Player, 2, 5, 3, -1)));  // negative uses
+	CHECK(B.AddUnit(Breakable(4, Faction::Player, 3, 5, 3, 3)));
+	CHECK(B.AddUnit(Breakable(5, Faction::Player, 4, 5, 3, 0)));    // already broken is allowed
+}
+
+static void RankAndAvoidBonusesShapeTheHitRate()
+{
+	// WeaponSpec: Might, Hit, MinRange, MaxRange, Durability, Type, RequiredRank, Avoid, RankHit, RankAvoid.
+	BattleUnit A = Fighter(1, Faction::Player, 0, 10, 5, 0, WeaponSpec{3, 70, 1, 1, 0, 1, 0, 0, 5, 0});
+	A.WeaponPoints[1] = RankThreshold[2]; // rank 2: +10 hit
+	BattleUnit D = Fighter(2, Faction::Enemy, 1, 10, 0, 0, WeaponSpec{3, 100, 1, 1, 0, 2, 0, 7, 0, 3});
+	D.WeaponPoints[2] = RankThreshold[1]; // rank 1: +3 avoid, plus 7 base avoid
+	CHECK(CalculateHitRate(A, D) == 70); // 70 + 10 - (7 + 3)
+
+	D.Weapon.Durability = 5;
+	D.WeaponUses = 0; // a broken weapon gives no avoid
+	CHECK(CalculateHitRate(A, D) == 80);
+
+	D.Weapon.Durability = 0;
+	D.Weapon.Avoid = -5; // a heavy weapon can make its wielder easier to hit
+	D.Weapon.RankAvoid = 0;
+	CHECK(CalculateHitRate(A, D) == 85);
+
+	D.Weapon.MaxRange = 0; // no weapon at all: nothing to add
+	D.Weapon.Avoid = 9;
+	CHECK(CalculateHitRate(A, D) == 80);
+}
+
+static void RankBonusesNeedATypedWeapon()
+{
+	BattleUnit A = Fighter(1, Faction::Player, 0, 10, 5, 0, WeaponSpec{3, 70, 1, 1, 0, 0, 0, 0, 5, 0}); // untyped: no rank
+	A.WeaponPoints[1] = RankThreshold[3];
+	BattleUnit D = Fighter(2, Faction::Enemy, 1, 10, 0, 0, NoWeapon);
+	CHECK(CalculateHitRate(A, D) == 70);
+}
+
+static void AddUnitRejectsBadAvoidFields()
+{
+	Battle B = MakeBattle({});
+	CHECK(!B.AddUnit(Fighter(1, Faction::Player, 0, 5, 5, 0, WeaponSpec{3, 100, 1, 1, 0, 0, 0, 101, 0, 0})));
+	CHECK(!B.AddUnit(Fighter(2, Faction::Player, 1, 5, 5, 0, WeaponSpec{3, 100, 1, 1, 0, 0, 0, -101, 0, 0})));
+	CHECK(!B.AddUnit(Fighter(3, Faction::Player, 2, 5, 5, 0, WeaponSpec{3, 100, 1, 1, 0, 0, 0, 0, -1, 0})));
+	CHECK(!B.AddUnit(Fighter(4, Faction::Player, 3, 5, 5, 0, WeaponSpec{3, 100, 1, 1, 0, 0, 0, 0, 0, 51})));
+	CHECK(B.AddUnit(Fighter(5, Faction::Player, 4, 5, 5, 0, WeaponSpec{3, 100, 1, 1, 0, 0, 0, -20, 5, 3})));
+}
+
 int main()
 {
+	RankAndAvoidBonusesShapeTheHitRate();
+	RankBonusesNeedATypedWeapon();
+	AddUnitRejectsBadAvoidFields();
+	EachStrikeConsumesOneUseForBothFighters();
+	AMissStillConsumesAUse();
+	WeaponBreaksAtZeroUsesAndCannotBeUsedAgain();
+	BrokenWeaponCannotCounter();
+	TheWeaponThatBreaksOnTheFirstStrikeStillFacesACounter();
+	WeaponsWithoutDurabilityNeverWear();
+	AddUnitRejectsInconsistentDurability();
 	AddUnitRejectsInconsistentWeapons();
 	DamageIsStrengthPlusMightMinusDefenseFlooredAtZero();
 	HitRateUsesSkillAndSpeedAndIsClamped();
