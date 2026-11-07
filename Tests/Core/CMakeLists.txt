@@ -31,4 +31,6 @@ function(add_core_test Name)
 endfunction()
 
 add_core_test(GridCoordTest Domain/GridCoordTest.cpp)
+add_core_test(GridTest Domain/GridTest.cpp)
+add_core_test(BattleMapTest Domain/BattleMapTest.cpp)
 add_core_test(ResultTest Application/ResultTest.cpp)
