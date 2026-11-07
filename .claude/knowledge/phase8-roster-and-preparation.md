@@ -22,3 +22,11 @@ Phase 8 = Roster / Campaign / save. This is the first part: persistent army + pr
 - Z4: on a loss nothing from the battle is applied (retry), but item changes made in the preparation stay. Win: `Preparation::Finish` then the next chapter gets a fresh preparation.
 - Z5: `Preparation()` / `CurrentChapter()` / `Complete()` require `!IsFinished()` (assert only, no Result).
 - `CampaignTest` (9 cases); CTest 20/20. Chapter JSON and save/load (8c) and in-battle pickups (8e) still not done.
+
+## Update: campaign / chapter JSON (8c-1)
+- **Chapter file** = a battle file under `Data/Chapters/<id>.json` with optional `name` and `startCells` (`FBattleDefinition::Name`, `StartCells`; strict types). Enemies/map/conditions/shops as usual; no player units (they come from the roster).
+- **Campaign file** `Data/Campaigns/<name>.json`: `gold`, `roster` (unit objects as in battle `units`; `side`/`x`/`y` optional via `FBattleJsonParser::ParseRosterUnit`), `chapters` (ids, >= 1). `FCampaignLoader::Load` -> `FCampaignDefinition {InitialRoster, Chapters}`. Errors: `ECampaignLoadError`. A chapter without `startCells` is `InvalidChapter`. Difficulty is not in the file (the player picks it).
+- `FBattleDataLoader` split into `LoadTables` + `LoadDefinition(dir, tables, subDir, name)`; `Load` behaves as before (refactor, same tests pass).
+- `Json` moved to the Commander3D module's Public dependencies (public header exposes `FJsonObject`); `CommanderTests` got `Json` too.
+- Samples: `Chapters/test_chapter.json`, `Campaigns/test_campaign.json`. Test `Commander3D.Json.LoadsSampleCampaign`; Automation 15/15.
+- Still not done: save/load of progress (8c-2: roster + chapter index + difficulty; weapon points by type name), in-battle pickups (8e).
