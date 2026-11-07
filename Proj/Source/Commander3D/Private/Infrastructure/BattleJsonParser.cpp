@@ -228,6 +228,43 @@ bool ReadStartCells(const TSharedPtr<FJsonObject>& Root, TArray<commander::domai
 	return true;
 }
 
+EBattleJsonError ReadChests(const TSharedPtr<FJsonObject>& Root, const FBattleDataTables& Tables, std::vector<commander::domain::Chest>& Out)
+{
+	if (!Root->HasField(TEXT("chests")))
+	{
+		return EBattleJsonError::None;
+	}
+	const TArray<TSharedPtr<FJsonValue>>* Entries = nullptr;
+	if (!Root->TryGetArrayField(TEXT("chests"), Entries))
+	{
+		return EBattleJsonError::InvalidField;
+	}
+	for (const TSharedPtr<FJsonValue>& Entry : *Entries)
+	{
+		const TSharedPtr<FJsonObject>* Object = nullptr;
+		commander::domain::Chest Chest;
+		FString ItemId;
+		// Exactly one of "item" and "gold".
+		if (!Entry.IsValid() || !Entry->TryGetObject(Object) || !JsonRead::ReadInt32Field(*Object, TEXT("x"), Chest.Position.X)
+			|| !JsonRead::ReadInt32Field(*Object, TEXT("y"), Chest.Position.Y) || (*Object)->HasField(TEXT("item")) == (*Object)->HasField(TEXT("gold"))
+			|| !JsonRead::ReadOptionalStringField(*Object, TEXT("item"), ItemId) || !JsonRead::ReadOptionalInt32Field(*Object, TEXT("gold"), Chest.Gold))
+		{
+			return EBattleJsonError::InvalidField;
+		}
+		if ((*Object)->HasField(TEXT("item")))
+		{
+			ItemSlot Slot;
+			if (!ResolveItem(Tables, ItemId, Slot))
+			{
+				return EBattleJsonError::UnknownItem;
+			}
+			Chest.Item = Slot;
+		}
+		Out.push_back(std::move(Chest));
+	}
+	return EBattleJsonError::None;
+}
+
 EBattleJsonError ReadShops(const TSharedPtr<FJsonObject>& Root, const FBattleDataTables& Tables, std::vector<commander::domain::Shop>& Out)
 {
 	if (!Root->HasField(TEXT("shops")))
@@ -312,6 +349,11 @@ commander::application::Result<FBattleDefinition, EBattleJsonError> FBattleJsonP
 	if (ShopError != EBattleJsonError::None)
 	{
 		return ParseResult::Err(ShopError);
+	}
+	const EBattleJsonError ChestError = ReadChests(Root, Tables, Definition.Setup.Chests);
+	if (ChestError != EBattleJsonError::None)
+	{
+		return ParseResult::Err(ChestError);
 	}
 	return ParseResult::Ok(std::move(Definition));
 }

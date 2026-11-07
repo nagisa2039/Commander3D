@@ -3,6 +3,10 @@
 	"map": "test_map",
 	"conditions": {"routEnemies": true, "defeatBoss": true, "turnLimit": 20},
 	"startCells": [{"x": 0, "y": 0}, {"x": 0, "y": 2}],
+	"chests": [
+		{"x": 3, "y": 1, "item": "vulnerary"},
+		{"x": 2, "y": 2, "gold": 300}
+	],
 	"shops": [
 		{"x": 0, "y": 1, "stock": ["vulnerary", "repair_kit"]}
 	],

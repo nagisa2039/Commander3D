@@ -52,6 +52,7 @@ bool FCommanderCampaignLoaderTest::RunTest(const FString& Parameters)
 	{
 		TestEqual(TEXT("Units on the map"), static_cast<int32>(Started.Value().Battle.Units().size()), 4);
 		TestEqual(TEXT("Gold carried in"), Started.Value().Battle.Gold(), 1000);
+		TestEqual(TEXT("Chapter chests are on the map"), static_cast<int32>(Started.Value().Battle.Chests().size()), 2);
 	}
 
 	// Parser details: "name" and "startCells" are optional and strictly typed; roster entries need no position or side.

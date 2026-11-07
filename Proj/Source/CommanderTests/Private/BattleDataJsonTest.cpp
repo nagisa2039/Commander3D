@@ -282,6 +282,18 @@ bool FCommanderBattleJsonValidTest::RunTest(const FString& Parameters)
 		TestEqual(TEXT("bow rank 1 = its threshold"), Trained.WeaponPoints[2], commander::domain::RankThreshold[1]);
 	}
 
+	// Chests: an item id (weapon or item) or gold.
+	const auto WithChests = FBattleJsonParser::Parse(
+		FString(TEXT(R"({"map":"m","units":[],"chests":[{"x":1,"y":2,"item":"potion"},{"x":3,"y":0,"gold":120},{"x":4,"y":0,"item":"sword"}]})")), Tables());
+	if (TestTrue(TEXT("Chests parse"), WithChests.IsOk()) && TestEqual(TEXT("Chest count"), static_cast<int32>(WithChests.Value().Setup.Chests.size()), 3))
+	{
+		const auto& Chests = WithChests.Value().Setup.Chests;
+		TestTrue(TEXT("Item chest"), Chests[0].Position.X == 1 && Chests[0].Position.Y == 2 && Chests[0].Item.has_value()
+			&& Chests[0].Item->Kind == ItemKind::Potion && Chests[0].Gold == 0);
+		TestTrue(TEXT("Gold chest"), !Chests[1].Item.has_value() && Chests[1].Gold == 120);
+		TestTrue(TEXT("A weapon id gives a fresh weapon"), Chests[2].Item.has_value() && Chests[2].Item->Kind == ItemKind::Weapon && Chests[2].Item->Uses == Chests[2].Item->Weapon.Durability);
+	}
+
 	// Gold and shops (stock entries are weapon ids or item ids; prices come from the tables).
 	const auto WithShop = FBattleJsonParser::Parse(
 		FString(TEXT(R"({"map":"m","gold":750,"units":[],"shops":[{"x":2,"y":1,"stock":["sword","potion","heal_staff"]}]})")), Tables());
@@ -362,6 +374,14 @@ bool FCommanderBattleJsonErrorsTest::RunTest(const FString& Parameters)
 		BattleErrorOf(TEXT(R"({"map":"m","units":[],"shops":[{"x":1,"y":1}]})")) == EBattleJsonError::InvalidField);
 	TestTrue(TEXT("Unknown stock id"),
 		BattleErrorOf(TEXT(R"({"map":"m","units":[],"shops":[{"x":1,"y":1,"stock":["elixir"]}]})")) == EBattleJsonError::UnknownItem);
+	TestTrue(TEXT("chests must be an array"), BattleErrorOf(TEXT(R"({"map":"m","units":[],"chests":{}})")) == EBattleJsonError::InvalidField);
+	TestTrue(TEXT("chest needs a position"), BattleErrorOf(TEXT(R"({"map":"m","units":[],"chests":[{"x":1,"gold":5}]})")) == EBattleJsonError::InvalidField);
+	TestTrue(TEXT("chest needs item or gold"), BattleErrorOf(TEXT(R"({"map":"m","units":[],"chests":[{"x":1,"y":1}]})")) == EBattleJsonError::InvalidField);
+	TestTrue(TEXT("chest with both item and gold"),
+		BattleErrorOf(TEXT(R"({"map":"m","units":[],"chests":[{"x":1,"y":1,"item":"potion","gold":5}]})")) == EBattleJsonError::InvalidField);
+	TestTrue(TEXT("chest item must be a string"), BattleErrorOf(TEXT(R"({"map":"m","units":[],"chests":[{"x":1,"y":1,"item":3}]})")) == EBattleJsonError::InvalidField);
+	TestTrue(TEXT("chest gold must be a number"), BattleErrorOf(TEXT(R"({"map":"m","units":[],"chests":[{"x":1,"y":1,"gold":"5"}]})")) == EBattleJsonError::InvalidField);
+	TestTrue(TEXT("Unknown chest item"), BattleErrorOf(TEXT(R"({"map":"m","units":[],"chests":[{"x":1,"y":1,"item":"elixir"}]})")) == EBattleJsonError::UnknownItem);
 	TestTrue(TEXT("Negative turnLimit"),
 		BattleErrorOf(TEXT(R"({"map":"m","conditions":{"turnLimit":-1},"units":[]})")) == EBattleJsonError::InvalidField);
 	TestTrue(TEXT("conditions must be an object"),
