@@ -67,12 +67,15 @@ public:
 	const BattleMap& GetMap() const { return Map; }
 	const std::vector<BattleUnit>& Units() const { return UnitList; }
 
-	// Fails (false) on duplicate id, negative movement, non-positive Hp, a cell outside the grid,
-	// impassable or occupied.
+	// Fails (false) on duplicate id, negative movement, non-positive Hp, an inconsistent weapon
+	// (negative range, MinRange > MaxRange, Hit outside 0..100), a cell outside the grid, impassable or occupied.
 	bool AddUnit(const BattleUnit& Unit)
 	{
+		const WeaponSpec& W = Unit.Weapon;
+		const bool bWeaponOk = W.MinRange >= 0 && W.MaxRange >= 0 && W.MinRange <= W.MaxRange && W.Hit >= 0 && W.Hit <= 100;
 		const TerrainSpec* Terrain = Map.TerrainAt(Unit.Position);
-		if (Terrain == nullptr || !Terrain->Passable || Unit.Movement < 0 || Unit.Hp <= 0 || FindUnit(Unit.Id) != nullptr
+		if (Terrain == nullptr || !Terrain->Passable || Unit.Movement < 0 || Unit.Hp <= 0 || !bWeaponOk
+			|| FindUnit(Unit.Id) != nullptr
 			|| UnitAt(Unit.Position) != nullptr)
 		{
 			return false;

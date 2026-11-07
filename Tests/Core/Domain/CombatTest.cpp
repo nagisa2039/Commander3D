@@ -179,8 +179,21 @@ static void AddUnitRejectsNonPositiveHp()
 	CHECK(!B.AddUnit(Fighter(1, Faction::Player, 0, 0, 5, 0, Sword)));
 }
 
+static void AddUnitRejectsInconsistentWeapons()
+{
+	Battle B = MakeBattle({});
+	CHECK(!B.AddUnit(Fighter(1, Faction::Player, 0, 5, 5, 0, WeaponSpec{3, 100, 2, 1})));   // min > max
+	CHECK(!B.AddUnit(Fighter(2, Faction::Player, 1, 5, 5, 0, WeaponSpec{3, 100, -1, 1})));  // negative min
+	CHECK(!B.AddUnit(Fighter(3, Faction::Player, 2, 5, 5, 0, WeaponSpec{3, 100, 0, -1})));  // negative max
+	CHECK(!B.AddUnit(Fighter(4, Faction::Player, 3, 5, 5, 0, WeaponSpec{3, 101, 1, 1})));   // hit above 100
+	CHECK(!B.AddUnit(Fighter(5, Faction::Player, 4, 5, 5, 0, WeaponSpec{3, -1, 1, 1})));    // negative hit
+	CHECK(B.AddUnit(Fighter(6, Faction::Player, 5, 5, 5, 0, NoWeapon)));                   // unarmed is fine
+	CHECK(B.Units().size() == 1);
+}
+
 int main()
 {
+	AddUnitRejectsInconsistentWeapons();
 	DamageIsStrengthPlusMightMinusDefenseFlooredAtZero();
 	HitRateUsesSkillAndSpeedAndIsClamped();
 	AttackHitsThenTargetCountersInRange();
