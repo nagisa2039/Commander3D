@@ -96,30 +96,12 @@ public:
 		return true;
 	}
 
-	// Swaps the equipped weapon with the weapon in the pack slot (an empty hand takes it and frees the slot), as
-	// Battle::EquipWeapon does. False (unchanged) if the member or slot is missing, the slot is not a weapon, or the
-	// member lacks the rank to wield it.
+	// Equips the weapon in the pack slot (see EquipFromPack). False (unchanged) if the member or slot is missing,
+	// the slot is not a weapon, or the member lacks the rank to wield it.
 	bool EquipWeapon(UnitId Id, std::size_t Slot)
 	{
 		const auto It = FindIt(Id);
-		if (It == MemberList.end() || Slot >= It->Items.size() || It->Items[Slot].Kind != ItemKind::Weapon
-			|| !CanWield(*It, It->Items[Slot].Weapon))
-		{
-			return false;
-		}
-		ItemSlot& Item = It->Items[Slot];
-		if (It->Weapon.MaxRange > 0)
-		{
-			std::swap(It->Weapon, Item.Weapon);
-			std::swap(It->WeaponUses, Item.Uses);
-		}
-		else
-		{
-			It->Weapon = Item.Weapon;
-			It->WeaponUses = Item.Uses;
-			It->Items.erase(It->Items.begin() + static_cast<std::ptrdiff_t>(Slot));
-		}
-		return true;
+		return It != MemberList.end() && EquipFromPack(*It, Slot);
 	}
 
 	// Carries a finished battle over: the gold, and every deployed member still standing in Finished (as it ended,

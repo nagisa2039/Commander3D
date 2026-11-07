@@ -290,22 +290,9 @@ public:
 	std::optional<WeaponEquipped> EquipWeapon(UnitId Id, std::size_t Slot)
 	{
 		BattleUnit* Unit = FindActionable(Id);
-		if (Unit == nullptr || Slot >= Unit->Items.size() || Unit->Items[Slot].Kind != ItemKind::Weapon
-			|| !CanWield(*Unit, Unit->Items[Slot].Weapon))
+		if (Unit == nullptr || !EquipFromPack(*Unit, Slot))
 		{
 			return std::nullopt;
-		}
-		ItemSlot& Item = Unit->Items[Slot];
-		if (Unit->Weapon.MaxRange > 0)
-		{
-			std::swap(Unit->Weapon, Item.Weapon);
-			std::swap(Unit->WeaponUses, Item.Uses);
-		}
-		else
-		{
-			Unit->Weapon = Item.Weapon;
-			Unit->WeaponUses = Item.Uses;
-			Unit->Items.erase(Unit->Items.begin() + static_cast<std::ptrdiff_t>(Slot));
 		}
 		return WeaponEquipped{Id, Slot};
 	}
@@ -439,15 +426,16 @@ public:
 	{
 		BattleUnit* Unit = FindActionable(Id);
 		const Shop* Here = Unit != nullptr ? FindShop(Unit->Position) : nullptr;
-		if (Unit == nullptr || Unit->Side != Faction::Player || Here == nullptr || Entry >= Here->Stock.size()
-			|| Unit->Items.size() >= MaxItemSlots || GoldValue < Here->Stock[Entry].Price)
+		if (Unit == nullptr || Unit->Side != Faction::Player || Here == nullptr)
 		{
 			return std::nullopt;
 		}
-		const ItemSlot Item = Here->Stock[Entry];
-		GoldValue -= Item.Price;
-		Unit->Items.push_back(Item);
-		return ItemBought{Id, Entry, Item.Price};
+		const std::optional<std::int32_t> Price = BuyFromStock(*Unit, GoldValue, Here->Stock, Entry);
+		if (!Price)
+		{
+			return std::nullopt;
+		}
+		return ItemBought{Id, Entry, *Price};
 	}
 
 	// A player unit standing on a shop sells the item in its slot Slot for half its Price (rounded down).
@@ -456,15 +444,16 @@ public:
 	std::optional<ItemSold> SellItem(UnitId Id, std::size_t Slot)
 	{
 		BattleUnit* Unit = FindActionable(Id);
-		if (Unit == nullptr || Unit->Side != Faction::Player || FindShop(Unit->Position) == nullptr || Slot >= Unit->Items.size()
-			|| Unit->Items[Slot].Price / 2 <= 0)
+		if (Unit == nullptr || Unit->Side != Faction::Player || FindShop(Unit->Position) == nullptr)
 		{
 			return std::nullopt;
 		}
-		const std::int32_t Earned = Unit->Items[Slot].Price / 2;
-		GoldValue += Earned;
-		Unit->Items.erase(Unit->Items.begin() + static_cast<std::ptrdiff_t>(Slot));
-		return ItemSold{Id, Slot, Earned};
+		const std::optional<std::int32_t> Earned = SellFromPack(*Unit, GoldValue, Slot);
+		if (!Earned)
+		{
+			return std::nullopt;
+		}
+		return ItemSold{Id, Slot, *Earned};
 	}
 
 	// A player unit standing on a chest opens it: the item goes into its pack or the gold into the army's gold, and

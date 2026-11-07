@@ -1,7 +1,9 @@
 #pragma once
 
 #include <algorithm>
+#include <cstddef>
 #include <cstdint>
+#include <utility>
 
 #include "Battle/BattleUnit.h"
 #include "Battle/RandomSource.h"
@@ -54,6 +56,30 @@ inline bool CanWield(const BattleUnit& Unit, const WeaponSpec& Weapon)
 		return false;
 	}
 	return WeaponRankOf(Unit.WeaponPoints[static_cast<std::size_t>(Weapon.Type)]) >= Weapon.RequiredRank;
+}
+
+// The equipping rule, shared by the battle (Battle::EquipWeapon) and the roster: swaps the equipped weapon with the
+// weapon in pack slot Slot (an empty hand takes it and frees the slot). False (nothing changed) if the slot is
+// missing or not a weapon, or the unit lacks the rank to wield it.
+inline bool EquipFromPack(BattleUnit& Unit, std::size_t Slot)
+{
+	if (Slot >= Unit.Items.size() || Unit.Items[Slot].Kind != ItemKind::Weapon || !CanWield(Unit, Unit.Items[Slot].Weapon))
+	{
+		return false;
+	}
+	ItemSlot& Item = Unit.Items[Slot];
+	if (Unit.Weapon.MaxRange > 0)
+	{
+		std::swap(Unit.Weapon, Item.Weapon);
+		std::swap(Unit.WeaponUses, Item.Uses);
+	}
+	else
+	{
+		Unit.Weapon = Item.Weapon;
+		Unit.WeaponUses = Item.Uses;
+		Unit.Items.erase(Unit.Items.begin() + static_cast<std::ptrdiff_t>(Slot));
+	}
+	return true;
 }
 
 // Event: a unit gained experience from a fight.
