@@ -88,15 +88,16 @@ inline std::optional<AttackPlan> BestAttack(const domain::Battle& B, const domai
 
 inline constexpr std::int32_t Unreachable = INT32_MAX;
 
-// Terrain-only path cost from each player unit's cell to every cell (units do not block, so a crowd of
-// allies cannot make a target look unreachable). One field per player unit.
-inline std::vector<domain::MovementRange> PlayerPathCostFields(const domain::Battle& B)
+// Terrain-only path cost from the cell of each unit matching IsTarget to every cell (units do not block, so a
+// crowd of allies cannot make a target look unreachable). One field per matching unit.
+template <typename Predicate>
+std::vector<domain::MovementRange> PathCostFields(const domain::Battle& B, Predicate IsTarget)
 {
 	constexpr std::int32_t Unlimited = 1 << 20; // far above any real map's path cost
 	std::vector<domain::MovementRange> Fields;
 	for (const domain::BattleUnit& Other : B.Units())
 	{
-		if (Other.Side == domain::Faction::Player)
+		if (IsTarget(Other))
 		{
 			domain::BattleUnit Probe = Other;
 			Probe.Movement = Unlimited;
@@ -106,12 +107,13 @@ inline std::vector<domain::MovementRange> PlayerPathCostFields(const domain::Bat
 	return Fields;
 }
 
-// The reachable cell with the shortest terrain path (movement-cost weighted) to any player unit; ties go to
-// the cheaper move. The unit's own cell when nothing is closer. Player units that cannot be reached by any
-// path (walled off) are ignored.
-inline domain::GridCoord ApproachCell(const domain::Battle& B, const domain::BattleUnit& Unit)
+// The reachable cell with the shortest terrain path (movement-cost weighted) to any unit matching IsTarget;
+// ties go to the cheaper move. The unit's own cell when nothing is closer. Targets that cannot be reached by
+// any path (walled off) are ignored.
+template <typename Predicate>
+domain::GridCoord ApproachCell(const domain::Battle& B, const domain::BattleUnit& Unit, Predicate IsTarget)
 {
-	const std::vector<domain::MovementRange> Fields = PlayerPathCostFields(B);
+	const std::vector<domain::MovementRange> Fields = PathCostFields(B, IsTarget);
 	const auto DistanceToPlayers = [&Fields](const domain::GridCoord& Cell) {
 		std::int32_t Nearest = Unreachable;
 		for (const domain::MovementRange& Field : Fields)
@@ -145,11 +147,105 @@ inline domain::GridCoord ApproachCell(const domain::Battle& B, const domain::Bat
 	return BestCell;
 }
 
+// ---- healing ----
+
+// A hurt ally is worth a staff charge once it is at or below this share of its maximum Hp.
+inline constexpr std::int32_t HealBelowPercent = 75;
+
+inline bool NeedsHealing(const domain::BattleUnit& Ally)
+{
+	return Ally.Hp * 100 <= Ally.MaxHp * HealBelowPercent;
+}
+
+inline bool HasStaff(const domain::BattleUnit& Unit)
+{
+	for (const domain::ItemSlot& Item : Unit.Items)
+	{
+		if (Item.Kind == domain::ItemKind::Staff)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+struct HealPlan
+{
+	domain::GridCoord Cell;
+	domain::UnitId Target;
+	std::size_t Slot = 0;
+	std::int32_t Cost = 0;
+	std::int32_t Hp = 0;
+	std::int32_t MaxHp = 1;
+};
+
+// The most wounded (lowest Hp share) first, then the lowest Hp, then the cheaper move, then the lower target id.
+inline bool IsBetterHeal(const HealPlan& A, const HealPlan& B)
+{
+	const std::int32_t ShareA = A.Hp * B.MaxHp;
+	const std::int32_t ShareB = B.Hp * A.MaxHp;
+	if (ShareA != ShareB)
+	{
+		return ShareA < ShareB;
+	}
+	if (A.Hp != B.Hp)
+	{
+		return A.Hp < B.Hp;
+	}
+	if (A.Cost != B.Cost)
+	{
+		return A.Cost < B.Cost;
+	}
+	return A.Target.Value < B.Target.Value;
+}
+
+// Best (cell, ally, staff) to heal with: an ally on the unit's side, other than itself, that NeedsHealing and
+// is within the staff's range (1..Range) from a cell the unit can stand on.
+inline std::optional<HealPlan> BestHeal(const domain::Battle& B, const domain::BattleUnit& Unit, bool CanMove)
+{
+	std::optional<HealPlan> Best;
+	for (std::size_t Slot = 0; Slot < Unit.Items.size(); ++Slot)
+	{
+		const domain::ItemSlot& Staff = Unit.Items[Slot];
+		if (Staff.Kind != domain::ItemKind::Staff)
+		{
+			continue;
+		}
+		for (const auto& [Cell, Cost] : CandidateCells(B, Unit, CanMove))
+		{
+			for (const domain::BattleUnit& Ally : B.Units())
+			{
+				const std::int32_t Distance = domain::ManhattanDistance(Cell, Ally.Position);
+				if (Ally.Side != Unit.Side || Ally.Id == Unit.Id || !NeedsHealing(Ally) || Distance < 1 || Distance > Staff.Range)
+				{
+					continue;
+				}
+				HealPlan Plan;
+				Plan.Cell = Cell;
+				Plan.Target = Ally.Id;
+				Plan.Slot = Slot;
+				Plan.Cost = Cost;
+				Plan.Hp = Ally.Hp;
+				Plan.MaxHp = Ally.MaxHp;
+				if (!Best.has_value() || IsBetterHeal(Plan, *Best))
+				{
+					Best = Plan;
+				}
+			}
+		}
+	}
+	return Best;
+}
+
 } // namespace enemy_ai_detail
 
 // The next Command the enemy side wants to issue, or nullopt when it is not the enemy phase or the battle is over.
-// Enemy units act in list order: attack the best target (moving into range if needed), else approach the
-// nearest player unit, else wait. When every enemy unit has acted the answer is EndPhaseCommand.
+// Enemy units act in list order:
+//   - a unit with no usable weapon swaps in a usable spare;
+//   - a healer (staff in the pack) heals the most wounded ally it can reach;
+//   - otherwise attack the best target (moving into range if needed);
+//   - otherwise approach the nearest player unit (an unarmed healer instead follows its hurt allies), else wait.
+// Enemies never use potions or repair kits. When every enemy unit has acted the answer is EndPhaseCommand.
 // It goes through the same Commands as the player, and only reads the Battle.
 inline std::optional<BattleCommand> DecideNext(const domain::Battle& B)
 {
@@ -165,6 +261,28 @@ inline std::optional<BattleCommand> DecideNext(const domain::Battle& B)
 		{
 			continue;
 		}
+		// A broken weapon is swapped for the first usable spare, which is free and lets the unit fight on.
+		if (!domain::HasUsableWeapon(Unit))
+		{
+			for (std::size_t Slot = 0; Slot < Unit.Items.size(); ++Slot)
+			{
+				const domain::ItemSlot& Item = Unit.Items[Slot];
+				// CanUseWeapon also covers the rank requirement, which EquipWeapon enforces too.
+				if (Item.Kind == domain::ItemKind::Weapon && domain::CanUseWeapon(Unit, Item.Weapon, Item.Uses))
+				{
+					return BattleCommand(EquipWeaponCommand{Unit.Id, Slot});
+				}
+			}
+		}
+		// A healer heals first: the most wounded ally it can reach (moving into staff range if needed).
+		if (const auto Heal = BestHeal(B, Unit, !Unit.HasMoved))
+		{
+			if (Heal->Cell == Unit.Position)
+			{
+				return BattleCommand(UseStaffCommand{Unit.Id, Heal->Target, Heal->Slot});
+			}
+			return BattleCommand(MoveUnitCommand{Unit.Id, Heal->Cell});
+		}
 		if (const auto Plan = BestAttack(B, Unit, !Unit.HasMoved))
 		{
 			if (Plan->Cell == Unit.Position)
@@ -175,7 +293,16 @@ inline std::optional<BattleCommand> DecideNext(const domain::Battle& B)
 		}
 		if (!Unit.HasMoved)
 		{
-			const domain::GridCoord Cell = ApproachCell(B, Unit);
+			// An unarmed healer stays with its hurt allies instead of walking into the player's units; everyone
+			// else closes in on the nearest player unit.
+			const bool bSupportOnly = HasStaff(Unit) && !domain::HasUsableWeapon(Unit);
+			const domain::Faction OwnSide = Unit.Side;
+			const domain::UnitId Self = Unit.Id;
+			const domain::GridCoord Cell = bSupportOnly
+				? ApproachCell(B, Unit, [OwnSide, Self](const domain::BattleUnit& Other) {
+					  return Other.Side == OwnSide && !(Other.Id == Self) && Other.Hp < Other.MaxHp;
+				  })
+				: ApproachCell(B, Unit, [](const domain::BattleUnit& Other) { return Other.Side == domain::Faction::Player; });
 			if (!(Cell == Unit.Position))
 			{
 				return BattleCommand(MoveUnitCommand{Unit.Id, Cell});

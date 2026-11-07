@@ -87,8 +87,48 @@ static void BossIsRequiredWhenTheBossRuleIsOn()
 	CHECK(StartBattle(S).Error() == BattleSetupError::NoBoss);
 }
 
+static Shop ShopAt(std::int32_t X, std::int32_t Price)
+{
+	ItemSlot Potion;
+	Potion.Kind = ItemKind::Potion;
+	Potion.Uses = 1;
+	Potion.Amount = 5;
+	Potion.Price = Price;
+	Shop S;
+	S.Position = {X, 0};
+	S.Stock = {Potion};
+	return S;
+}
+
+static void GoldAndShopsAreApplied()
+{
+	BattleSetup S = ValidSetup();
+	S.Gold = 250;
+	S.Shops = {ShopAt(1, 30)};
+	const auto R = StartBattle(S);
+	CHECK(R.IsOk());
+	CHECK(R.Value().Gold() == 250);
+	CHECK(R.Value().Shops().size() == 1 && R.Value().Shops()[0].Stock[0].Price == 30);
+}
+
+static void InvalidShopsAndGoldAreReported()
+{
+	BattleSetup S = ValidSetup();
+	S.Shops = {ShopAt(3, 30)};                    // (3,0) is a wall
+	CHECK(StartBattle(S).Error() == BattleSetupError::InvalidShop);
+	S.Shops = {ShopAt(1, 0)};                     // not for sale
+	CHECK(StartBattle(S).Error() == BattleSetupError::InvalidShop);
+	S.Shops = {ShopAt(1, 30), ShopAt(1, 30)};     // two shops on one cell
+	CHECK(StartBattle(S).Error() == BattleSetupError::InvalidShop);
+	S = ValidSetup();
+	S.Gold = -5;
+	CHECK(StartBattle(S).Error() == BattleSetupError::InvalidShop);
+}
+
 int main()
 {
+	GoldAndShopsAreApplied();
+	InvalidShopsAndGoldAreReported();
 	ValidSetupStartsOngoingOnTurnOneWithPlayerPhase();
 	ConditionsAreApplied();
 	InvalidMapIsReported();

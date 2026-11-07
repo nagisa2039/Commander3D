@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <optional>
 #include <utility>
 #include <variant>
@@ -28,14 +29,67 @@ struct AttackUnitCommand
 	domain::UnitId Target;
 };
 
+struct EquipWeaponCommand
+{
+	domain::UnitId Unit;
+	std::size_t Slot = 0; // inventory slot holding the weapon to equip
+};
+
+struct UseItemCommand
+{
+	domain::UnitId Unit;
+	std::size_t Slot = 0; // inventory slot holding a potion or repair kit
+};
+
+struct GiveItemCommand
+{
+	domain::UnitId Giver;
+	domain::UnitId Receiver;
+	std::size_t Slot = 0; // the giver's inventory slot
+};
+
+struct DropItemCommand
+{
+	domain::UnitId Unit;
+	std::size_t Slot = 0;
+};
+
+struct UseStaffCommand
+{
+	domain::UnitId Healer;
+	domain::UnitId Target;
+	std::size_t Slot = 0; // the healer's slot holding the staff
+};
+
+struct BuyItemCommand
+{
+	domain::UnitId Unit; // must stand on a shop
+	std::size_t Entry = 0; // index into the shop's stock
+};
+
+struct SellItemCommand
+{
+	domain::UnitId Unit; // must stand on a shop
+	std::size_t Slot = 0;
+};
+
+struct PromoteUnitCommand
+{
+	domain::UnitId Unit;
+	std::size_t Option = 0;                  // which of the unit's promotion options to take
+	std::optional<std::size_t> SealSlot;     // spend the promotion seal in this slot to promote below the normal level
+};
+
 struct EndPhaseCommand
 {
 };
 
-using BattleCommand = std::variant<MoveUnitCommand, WaitUnitCommand, AttackUnitCommand, EndPhaseCommand>;
+using BattleCommand = std::variant<MoveUnitCommand, WaitUnitCommand, AttackUnitCommand, EquipWeaponCommand, UseItemCommand, GiveItemCommand,
+	DropItemCommand, UseStaffCommand, BuyItemCommand, SellItemCommand, PromoteUnitCommand, EndPhaseCommand>;
 
 // Events: what happened, for Presentation to replay.
-using BattleEvent = std::variant<domain::UnitMoved, domain::UnitWaited, domain::AttackResolved, domain::PhaseChanged>;
+using BattleEvent = std::variant<domain::UnitMoved, domain::UnitWaited, domain::AttackResolved, domain::WeaponEquipped, domain::ItemUsed,
+	domain::ItemGiven, domain::ItemDropped, domain::StaffUsed, domain::ItemBought, domain::ItemSold, domain::UnitPromoted, domain::PhaseChanged>;
 
 enum class CommandError
 {
@@ -77,6 +131,14 @@ private:
 	CommandResult Run(const MoveUnitCommand& C) { return FromOptional(BattleState.MoveUnit(C.Unit, C.Destination)); }
 	CommandResult Run(const WaitUnitCommand& C) { return FromOptional(BattleState.WaitUnit(C.Unit)); }
 	CommandResult Run(const AttackUnitCommand& C) { return FromOptional(BattleState.AttackUnit(C.Attacker, C.Target, Rng)); }
+	CommandResult Run(const EquipWeaponCommand& C) { return FromOptional(BattleState.EquipWeapon(C.Unit, C.Slot)); }
+	CommandResult Run(const UseItemCommand& C) { return FromOptional(BattleState.UseItem(C.Unit, C.Slot)); }
+	CommandResult Run(const GiveItemCommand& C) { return FromOptional(BattleState.GiveItem(C.Giver, C.Receiver, C.Slot)); }
+	CommandResult Run(const DropItemCommand& C) { return FromOptional(BattleState.DropItem(C.Unit, C.Slot)); }
+	CommandResult Run(const UseStaffCommand& C) { return FromOptional(BattleState.UseStaff(C.Healer, C.Target, C.Slot, Rng)); }
+	CommandResult Run(const BuyItemCommand& C) { return FromOptional(BattleState.BuyItem(C.Unit, C.Entry)); }
+	CommandResult Run(const SellItemCommand& C) { return FromOptional(BattleState.SellItem(C.Unit, C.Slot)); }
+	CommandResult Run(const PromoteUnitCommand& C) { return FromOptional(BattleState.PromoteUnit(C.Unit, C.Option, C.SealSlot)); }
 	CommandResult Run(const EndPhaseCommand&) { return CommandResult::Ok(BattleEvent(BattleState.EndPhase())); }
 
 	domain::Battle BattleState;
