@@ -4,6 +4,8 @@
 
 #include "Battle/BattleSetup.h"
 #include "Common/Result.h"
+#include "Infrastructure/ClassJsonParser.h"
+#include "Infrastructure/ItemJsonParser.h"
 #include "Infrastructure/WeaponJsonParser.h"
 
 enum class EBattleJsonError : uint8
@@ -11,7 +13,18 @@ enum class EBattleJsonError : uint8
 	None,
 	InvalidJson,   // not parseable JSON, or the root is not an object
 	InvalidField,  // a required field is missing or has the wrong type / range
-	UnknownWeapon, // a unit refers to a weapon id that is not in the weapon table
+	UnknownWeapon, // a unit's "weapon" is not in the weapon table
+	UnknownClass,  // a unit's "class" is not in the class table
+	UnknownItem,   // an entry of a unit's "items" or a shop's "stock" is in neither the weapon table nor the item table
+	UnknownWeaponType, // a unit's "weaponRanks" names a type the weapon file does not define
+};
+
+// The master data a battle file refers to by id.
+struct FBattleDataTables
+{
+	FWeaponCatalog Weapons;
+	FItemTable Items;
+	FClassTable Classes;
 };
 
 // A parsed battle file: which map to use, and the setup with everything except the map data.
@@ -26,15 +39,23 @@ struct FBattleDefinition
 // {
 //   "map": "test_map",                                                        // file name under Data/Maps/ without ".json"
 //   "conditions": { "routEnemies": true, "defeatBoss": false, "turnLimit": 0 }, // optional; each key optional
-//   "units": [ { "id": 1, "side": "player"|"enemy", "x": 0, "y": 0, "movement": 5, "hp": 18,
+//   "units": [ { "id": 1, "side": "player"|"enemy", "x": 0, "y": 0, "hp": 18,
 //                "strength": 5, "skill": 4, "speed": 6, "defense": 2,
-//                "weapon": "iron_sword",   // optional; absent = unarmed
-//                "boss": false } ]         // optional
+//                "class": "soldier",        // optional; gives movement and growth rates
+//                "movement": 5,             // required without a class; with one it overrides the class
+//                "level": 1, "exp": 0,      // optional (defaults 1 and 0)
+//                "weapon": "iron_sword",    // optional; absent = unarmed. Equipped, starts fresh
+//                "items": ["iron_bow", "vulnerary"],  // optional inventory: weapon ids or item ids
+//                "weaponRanks": {"sword": 1},         // optional starting ranks (0..3) by weapon type name
+//                "boss": false } ],         // optional
+//   "gold": 500,                            // optional: the player army's gold
+//   "shops": [ { "x": 2, "y": 1, "stock": ["vulnerary", "iron_sword"] } ]   // optional; ids as in "items"
 // }
 //
-// "hp" sets both Hp and MaxHp. Game rules (positions, both sides present, boss present) are checked by StartBattle.
+// "hp" sets both Hp and MaxHp. Game rules (positions, ranges, both sides present, boss present) are checked
+// by StartBattle.
 class COMMANDER3D_API FBattleJsonParser
 {
 public:
-	static commander::application::Result<FBattleDefinition, EBattleJsonError> Parse(const FString& JsonText, const FWeaponTable& Weapons);
+	static commander::application::Result<FBattleDefinition, EBattleJsonError> Parse(const FString& JsonText, const FBattleDataTables& Tables);
 };

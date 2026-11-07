@@ -1,0 +1,8 @@
+{
+	"items": [
+		{"id": "vulnerary", "kind": "potion", "uses": 3, "amount": 10, "price": 300},
+		{"id": "repair_kit", "kind": "repair", "uses": 1, "price": 700},
+		{"id": "heal_staff", "kind": "staff", "uses": 5, "amount": 12, "range": 3, "price": 2000},
+		{"id": "hero_seal", "kind": "seal", "uses": 1, "level": 5, "price": 5000}
+	]
+}

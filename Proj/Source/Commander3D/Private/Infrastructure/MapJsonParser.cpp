@@ -38,7 +38,7 @@ commander::application::Result<commander::application::MapData, EMapJsonError> F
 		const TSharedPtr<FJsonObject>* TerrainObject = nullptr;
 		commander::domain::TerrainSpec Spec;
 		if (!Entry.IsValid() || !Entry->TryGetObject(TerrainObject) || !ReadInt32Field(*TerrainObject, TEXT("moveCost"), Spec.MoveCost)
-			|| !(*TerrainObject)->TryGetBoolField(TEXT("passable"), Spec.Passable))
+			|| !JsonRead::ReadBoolField(*TerrainObject, TEXT("passable"), Spec.Passable))
 		{
 			return ParseResult::Err(EMapJsonError::InvalidField);
 		}

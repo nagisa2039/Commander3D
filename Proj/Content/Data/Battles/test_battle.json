@@ -1,10 +1,15 @@
 {
 	"map": "test_map",
 	"conditions": {"routEnemies": true, "defeatBoss": true, "turnLimit": 20},
+	"gold": 1000,
+	"shops": [
+		{"x": 0, "y": 1, "stock": ["vulnerary", "repair_kit", "steel_sword", "hero_seal"]}
+	],
 	"units": [
-		{"id": 1, "side": "player", "x": 0, "y": 0, "movement": 5, "hp": 18, "strength": 5, "skill": 4, "speed": 6, "defense": 2, "weapon": "iron_sword"},
-		{"id": 2, "side": "player", "x": 0, "y": 2, "movement": 4, "hp": 14, "strength": 3, "skill": 6, "speed": 5, "defense": 1, "weapon": "iron_bow"},
-		{"id": 101, "side": "enemy", "x": 4, "y": 0, "movement": 3, "hp": 22, "strength": 6, "skill": 3, "speed": 3, "defense": 4, "weapon": "iron_sword", "boss": true},
-		{"id": 102, "side": "enemy", "x": 4, "y": 2, "movement": 4, "hp": 16, "strength": 4, "skill": 2, "speed": 4, "defense": 1, "weapon": "iron_sword"}
+		{"id": 1, "side": "player", "x": 0, "y": 0, "class": "soldier", "hp": 18, "strength": 5, "skill": 4, "speed": 6, "defense": 2, "weapon": "iron_sword", "weaponRanks": {"sword": 1}, "items": ["vulnerary", "repair_kit", "hero_seal"]},
+		{"id": 2, "side": "player", "x": 0, "y": 2, "class": "archer", "movement": 4, "hp": 14, "strength": 3, "skill": 6, "speed": 5, "defense": 1, "weapon": "iron_bow", "items": ["iron_sword", "heal_staff"]},
+		{"id": 101, "side": "enemy", "x": 4, "y": 0, "class": "brute", "hp": 22, "strength": 6, "skill": 3, "speed": 3, "defense": 4, "weapon": "iron_sword", "boss": true, "level": 5},
+		{"id": 102, "side": "enemy", "x": 4, "y": 2, "class": "soldier", "hp": 16, "strength": 4, "skill": 2, "speed": 4, "defense": 1, "weapon": "iron_sword"},
+		{"id": 103, "side": "enemy", "x": 3, "y": 2, "class": "cleric", "hp": 12, "strength": 1, "skill": 4, "speed": 4, "defense": 1, "items": ["heal_staff"]}
 	]
 }

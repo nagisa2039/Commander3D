@@ -1,6 +1,9 @@
 {
+	"types": ["sword", "bow"],
 	"weapons": [
-		{"id": "iron_sword", "might": 5, "hit": 90, "minRange": 1, "maxRange": 1},
-		{"id": "iron_bow", "might": 4, "hit": 80, "minRange": 2, "maxRange": 2}
+		{"id": "iron_sword", "might": 5, "hit": 90, "minRange": 1, "maxRange": 1, "durability": 40, "type": "sword", "price": 480, "rankHit": 3},
+		{"id": "steel_sword", "might": 8, "hit": 80, "minRange": 1, "maxRange": 1, "durability": 30, "type": "sword", "rank": 1, "price": 900, "rankHit": 3, "avoid": -5},
+		{"id": "rapier", "might": 4, "hit": 95, "minRange": 1, "maxRange": 1, "durability": 35, "type": "sword", "price": 700, "avoid": 10, "rankAvoid": 2},
+		{"id": "iron_bow", "might": 4, "hit": 80, "minRange": 2, "maxRange": 2, "durability": 30, "type": "bow", "price": 540, "rankHit": 4}
 	]
 }

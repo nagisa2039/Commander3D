@@ -1,0 +1,19 @@
+{
+	"classes": [
+		{"id": "soldier", "movement": 5, "growth": {"hp": 70, "strength": 45, "skill": 40, "speed": 40, "defense": 30},
+		 "caps": {"hp": 40, "strength": 20, "skill": 20, "speed": 20, "defense": 20},
+		 "promotions": [
+			{"level": 10, "to": "knight", "bonus": {"hp": 4, "strength": 2, "skill": 1, "speed": 1, "defense": 3, "movement": 1}},
+			{"level": 8, "to": "ranger", "bonus": {"hp": 2, "strength": 1, "skill": 3, "speed": 3, "defense": 1, "movement": 2}}
+		 ]},
+		{"id": "knight", "movement": 6, "growth": {"hp": 80, "strength": 50, "skill": 40, "speed": 35, "defense": 40},
+		 "caps": {"hp": 60, "strength": 30, "skill": 28, "speed": 28, "defense": 30}},
+		{"id": "ranger", "movement": 7, "growth": {"hp": 65, "strength": 40, "skill": 55, "speed": 55, "defense": 25},
+		 "caps": {"hp": 50, "strength": 26, "skill": 30, "speed": 30, "defense": 24}},
+		{"id": "archer", "movement": 5, "growth": {"hp": 60, "strength": 35, "skill": 55, "speed": 45, "defense": 20},
+		 "caps": {"hp": 40, "strength": 20, "skill": 25, "speed": 25, "defense": 15}},
+		{"id": "brute", "movement": 3, "growth": {"hp": 80, "strength": 50, "skill": 25, "speed": 20, "defense": 35}},
+		{"id": "cleric", "movement": 4, "growth": {"hp": 55, "strength": 20, "skill": 40, "speed": 40, "defense": 15},
+		 "caps": {"hp": 35, "strength": 15, "skill": 25, "speed": 25, "defense": 15}}
+	]
+}

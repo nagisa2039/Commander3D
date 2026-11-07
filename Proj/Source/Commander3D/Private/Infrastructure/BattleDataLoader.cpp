@@ -1,6 +1,8 @@
 #include "Infrastructure/BattleDataLoader.h"
 
 #include "Infrastructure/BattleJsonParser.h"
+#include "Infrastructure/ClassJsonParser.h"
+#include "Infrastructure/ItemJsonParser.h"
 #include "Infrastructure/MapJsonParser.h"
 #include "Infrastructure/WeaponJsonParser.h"
 #include "Misc/FileHelper.h"
@@ -37,8 +39,12 @@ commander::application::Result<BattleSetup, EBattleLoadError> FBattleDataLoader:
 	}
 
 	FString WeaponsText;
+	FString ItemsText;
+	FString ClassesText;
 	FString BattleText;
 	if (!FFileHelper::LoadFileToString(WeaponsText, *FPaths::Combine(DataDir, TEXT("Weapons.json")))
+		|| !FFileHelper::LoadFileToString(ItemsText, *FPaths::Combine(DataDir, TEXT("Items.json")))
+		|| !FFileHelper::LoadFileToString(ClassesText, *FPaths::Combine(DataDir, TEXT("Classes.json")))
 		|| !FFileHelper::LoadFileToString(BattleText, *FPaths::Combine(DataDir, TEXT("Battles"), BattleName + TEXT(".json"))))
 	{
 		return LoadResult::Err(EBattleLoadError::FileNotReadable);
@@ -49,7 +55,21 @@ commander::application::Result<BattleSetup, EBattleLoadError> FBattleDataLoader:
 	{
 		return LoadResult::Err(EBattleLoadError::InvalidWeapons);
 	}
-	const auto Battle = FBattleJsonParser::Parse(BattleText, Weapons.Value());
+	const auto Items = FItemJsonParser::Parse(ItemsText);
+	if (!Items.IsOk())
+	{
+		return LoadResult::Err(EBattleLoadError::InvalidItems);
+	}
+	const auto Classes = FClassJsonParser::Parse(ClassesText);
+	if (!Classes.IsOk())
+	{
+		return LoadResult::Err(EBattleLoadError::InvalidClasses);
+	}
+	FBattleDataTables Tables;
+	Tables.Weapons = Weapons.Value(); // the whole catalog: weapons, type ids, prices
+	Tables.Items = Items.Value();
+	Tables.Classes = Classes.Value();
+	const auto Battle = FBattleJsonParser::Parse(BattleText, Tables);
 	if (!Battle.IsOk() || !IsSafeName(Battle.Value().MapName))
 	{
 		return LoadResult::Err(EBattleLoadError::InvalidBattle);
