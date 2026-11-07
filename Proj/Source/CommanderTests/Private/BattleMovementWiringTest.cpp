@@ -28,6 +28,33 @@ bool FCommanderBattleMovementWiringTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Unit added"), B.AddUnit(BattleUnit{UnitId{1}, Faction::Player, GridCoord{0, 0}, 3}));
 	const auto Event = B.MoveUnit(UnitId{1}, GridCoord{2, 0});
 	TestTrue(TEXT("Move succeeds"), Event.has_value());
+	TestFalse(TEXT("Second move in the same phase rejected"), B.MoveUnit(UnitId{1}, GridCoord{1, 0}).has_value());
+	TestTrue(TEXT("Wait succeeds"), B.WaitUnit(UnitId{1}).has_value());
+	const PhaseChanged Enemy = B.EndPhase();
+	TestTrue(TEXT("Enemy phase follows"), Enemy.Side == Faction::Enemy && Enemy.Turn == 1);
+	const PhaseChanged Player = B.EndPhase();
+	TestTrue(TEXT("Next turn starts with player"), Player.Side == Faction::Player && Player.Turn == 2);
 	TestFalse(TEXT("Move onto wall rejected"), B.MoveUnit(UnitId{1}, GridCoord{1, 1}).has_value());
+
+	// Combat: a unit with a sword hits an adjacent enemy, which is defeated.
+	struct FZeroRandom : IRandomSource
+	{
+		int32 NextPercent() override { return 0; }
+	};
+	BattleUnit Attacker{UnitId{10}, Faction::Player, GridCoord{2, 0}, 1};
+	Attacker.Strength = 5;
+	Attacker.Weapon = WeaponSpec{3, 100, 1, 1};
+	BattleUnit Target{UnitId{11}, Faction::Enemy, GridCoord{2, 1}, 1};
+	Target.Hp = 4;
+	Battle C(*Map);
+	TestTrue(TEXT("Attacker added"), C.AddUnit(Attacker));
+	TestTrue(TEXT("Target added"), C.AddUnit(Target));
+	FZeroRandom Rng;
+	const auto Attack = C.AttackUnit(UnitId{10}, UnitId{11}, Rng);
+	TestTrue(TEXT("Attack resolved"), Attack.has_value());
+	if (Attack.has_value())
+	{
+		TestTrue(TEXT("Target defeated"), Attack->Defeated.size() == 1 && C.FindUnit(UnitId{11}) == nullptr);
+	}
 	return true;
 }
