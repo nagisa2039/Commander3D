@@ -30,3 +30,11 @@ Phase 8 = Roster / Campaign / save. This is the first part: persistent army + pr
 - `Json` moved to the Commander3D module's Public dependencies (public header exposes `FJsonObject`); `CommanderTests` got `Json` too.
 - Samples: `Chapters/test_chapter.json`, `Campaigns/test_campaign.json`. Test `Commander3D.Json.LoadsSampleCampaign`; Automation 15/15.
 - Still not done: save/load of progress (8c-2: roster + chapter index + difficulty; weapon points by type name), in-battle pickups (8e).
+
+## Update: save / load (8c-2)
+- `Campaign(roster, difficulty, chapters, startIndex = 0)`: resume at a later chapter; an index past the end is clamped to "finished". `CampaignTest` +1 (CTest 20/20).
+- `FSaveJsonParser` (`Serialize` / `Parse`, `FSaveData {CampaignName, Difficulty, ChapterIndex, Roster}`): version 1 JSON. Units are saved **self-contained** (equipped weapon, spare weapons/items, promotions, growth, caps written out in full), so editing the master data later does not change a saved army. Only weapon training is keyed by weapon **type name** (this resolves Y6: reordering `types` in the weapon file no longer corrupts saves). Errors: `ESaveJsonError {InvalidJson, UnsupportedVersion, InvalidField, UnknownWeaponType}`. The Roster re-validates every unit (`Roster::Add`).
+- `FSaveStorage::Save/Load(DataDir, SaveDir, Slot, ...)`: `<SaveDir>/<Slot>.json`, written via a `.tmp` file + move so a failed write keeps the old save. `Load` re-reads the campaign (chapters) by the saved campaign name and rebuilds the `Campaign`; a chapter index beyond the campaign is `InvalidSave`. Slot/campaign names are file-name safe only.
+- Saves are for between battles: unit position/turn state and in-progress battles are not saved; Hp is MaxHp. The save includes item changes made in the current preparation (`Campaign::Roster()`), not the deployment choice.
+- Not decided: where `SaveDir` lives (e.g. `FPaths::ProjectSavedDir()/SaveGames`) is up to the caller; no auto-save / slot listing yet.
+- Tests: `Commander3D.Save.JsonRoundTrip`, `Commander3D.Save.StorageRoundTrip`; Automation 17/17.
