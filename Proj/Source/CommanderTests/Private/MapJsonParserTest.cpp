@@ -80,6 +80,14 @@ bool FCommanderMapJsonParseErrorsTest::RunTest(const FString& Parameters)
 		ErrorOf(TEXT(R"({"width":1,"height":1,"terrains":[{"moveCost":1,"passable":true}],"cells":[0]})")) == EMapJsonError::InvalidField);
 	TestTrue(TEXT("Negative terrain id"),
 		ErrorOf(TEXT(R"({"width":1,"height":1,"terrains":[{"moveCost":1,"passable":true}],"cells":[[-1]]})")) == EMapJsonError::InvalidField);
+	TestTrue(TEXT("passable must be a bool, not the number 1"),
+		ErrorOf(TEXT(R"({"width":1,"height":1,"terrains":[{"moveCost":1,"passable":1}],"cells":[[0]]})")) == EMapJsonError::InvalidField);
+	TestTrue(TEXT("passable must be a bool, not the number 0"),
+		ErrorOf(TEXT(R"({"width":1,"height":1,"terrains":[{"moveCost":1,"passable":0}],"cells":[[0]]})")) == EMapJsonError::InvalidField);
+	TestTrue(TEXT("passable must be a bool, not a string"),
+		ErrorOf(TEXT(R"({"width":1,"height":1,"terrains":[{"moveCost":1,"passable":"true"}],"cells":[[0]]})")) == EMapJsonError::InvalidField);
+	TestTrue(TEXT("passable must not be null"),
+		ErrorOf(TEXT(R"({"width":1,"height":1,"terrains":[{"moveCost":1,"passable":null}],"cells":[[0]]})")) == EMapJsonError::InvalidField);
 	TestTrue(TEXT("Terrain id above uint16"),
 		ErrorOf(TEXT(R"({"width":1,"height":1,"terrains":[{"moveCost":1,"passable":true}],"cells":[[65536]]})")) == EMapJsonError::InvalidField);
 	TestTrue(TEXT("Row shorter than width"),

@@ -59,6 +59,63 @@ bool FCommanderBattleMovementWiringTest::RunTest(const FString& Parameters)
 		TestTrue(TEXT("Last enemy defeated wins"), Attack->Outcome == BattleOutcome::PlayerWon && C.Outcome() == BattleOutcome::PlayerWon);
 	}
 
+	// Items and experience: a potion heals, a spare weapon is equipped, a kill grants experience.
+	ItemSlot Potion;
+	Potion.Kind = ItemKind::Potion;
+	Potion.Uses = 1;
+	Potion.Amount = 5;
+	ItemSlot Spare;
+	Spare.Kind = ItemKind::Weapon;
+	Spare.Weapon = WeaponSpec{4, 100, 1, 1};
+	BattleUnit Medic{UnitId{40}, Faction::Player, GridCoord{0, 0}, 1};
+	Medic.Hp = 3;
+	Medic.MaxHp = 10;
+	Medic.Items = {Potion, Spare};
+	Battle E(*Map);
+	TestTrue(TEXT("Medic added"), E.AddUnit(Medic));
+	E.AddUnit(BattleUnit{UnitId{41}, Faction::Enemy, GridCoord{2, 1}, 1});
+	const auto Healed = E.UseItem(UnitId{40}, 0);
+	TestTrue(TEXT("Potion heals"), Healed.has_value() && Healed->HpHealed == 5 && E.FindUnit(UnitId{40})->Hp == 8);
+	E.EndPhase();
+	E.EndPhase();
+	TestTrue(TEXT("Spare weapon equipped"), E.EquipWeapon(UnitId{40}, 0).has_value() && E.FindUnit(UnitId{40})->Weapon.Might == 4);
+
+	// Staff, shop, promotion and weapon ranks.
+	ItemSlot Staff;
+	Staff.Kind = ItemKind::Staff;
+	Staff.Uses = 1;
+	Staff.Amount = 4;
+	Staff.Range = 2;
+	BattleUnit Cleric{UnitId{50}, Faction::Player, GridCoord{0, 0}, 1};
+	Cleric.Items = {Staff};
+	Cleric.Level = 3;
+	Cleric.Promotions = {PromotionSpec{"bishop", 3, StatBonus{1, 0, 0, 0, 0, 1}, GrowthRates{}, StatCaps{}}};
+	BattleUnit Hurt{UnitId{51}, Faction::Player, GridCoord{1, 0}, 1};
+	Hurt.Hp = 2;
+	Hurt.MaxHp = 9;
+	Battle F(*Map);
+	TestTrue(TEXT("Cleric and wounded ally added"), F.AddUnit(Cleric) && F.AddUnit(Hurt));
+	TestTrue(TEXT("An enemy keeps the battle going"), F.AddUnit(BattleUnit{UnitId{52}, Faction::Enemy, GridCoord{2, 1}, 1}));
+	FZeroRandom StaffRng;
+	const auto StaffHeal = F.UseStaff(UnitId{50}, UnitId{51}, 0, StaffRng);
+	TestTrue(TEXT("Staff heals and earns experience"),
+		StaffHeal.has_value() && F.FindUnit(UnitId{51})->Hp == 6 && StaffHeal->Experience.has_value() && StaffHeal->Experience->Amount == 10);
+	F.EndPhase();
+	F.EndPhase();
+	const auto Promoted = F.PromoteUnit(UnitId{50}, 0);
+	TestTrue(TEXT("Promotion works"), Promoted.has_value() && Promoted->Name == "bishop" && F.FindUnit(UnitId{50})->Level == 1);
+	Shop Store;
+	Store.Position = GridCoord{1, 0};
+	ItemSlot ForSale;
+	ForSale.Kind = ItemKind::RepairKit;
+	ForSale.Uses = 1;
+	ForSale.Price = 10;
+	Store.Stock = {ForSale};
+	TestTrue(TEXT("Shop added"), F.AddShop(Store) && F.SetGold(25));
+	TestTrue(TEXT("Buying works"), F.BuyItem(UnitId{51}, 0).has_value() && F.Gold() == 15);
+	TestTrue(TEXT("Selling works"), F.SellItem(UnitId{51}, 0).has_value() && F.Gold() == 20);
+	TestEqual(TEXT("Rank thresholds"), WeaponRankOf(RankThreshold[2]), 2);
+
 	// Victory conditions: turn limit and boss.
 	VictoryConditions Limited;
 	Limited.TurnLimit = 1;
