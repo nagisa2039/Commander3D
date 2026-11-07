@@ -8,12 +8,12 @@ public class Commander3D : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 	
-		// Public only for what public headers expose (MapJsonParser.h exposes CommanderApplication's MapData; BattleJsonParser.h exposes Json's FJsonObject).
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "Json", "CommanderApplication" });
+		// Public only for what public headers expose (MapJsonParser.h exposes CommanderApplication's MapData; BattleJsonParser.h exposes Json's FJsonObject; the Presentation subsystem exposes CoreUObject / Engine types).
+		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "Json", "CommanderApplication" });
 
 		PrivateDependencyModuleNames.AddRange(new string[]
 		{
-			"CoreUObject", "Engine", "InputCore", "EnhancedInput", "CommanderDomain"
+			"InputCore", "EnhancedInput", "CommanderDomain"
 		});
 	}
 }
