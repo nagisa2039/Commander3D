@@ -19,6 +19,9 @@
 | `AttackResolved` | 攻撃結果イベント | 攻撃と反撃の `Strike` 列と撃破されたユニット |
 | `BattleOutcome` | 戦闘結果 | `Ongoing` / `PlayerWon` / `PlayerLost` |
 | `VictoryConditions` | 勝利条件設定 | 殲滅(既定)・ボス撃破・ターン制限(超過で敗北)。自軍全滅は常に敗北 |
+| `BattleSetup` | 戦闘セットアップ | マップ・ユニット配置・勝利条件。`StartBattle` が検証して `Battle` にする |
+| `BattleSession` | 戦闘セッション | Command を受けて Event を返す唯一の窓口 |
+| `StdRandomSource` | 標準乱数源 | シード指定可能な本番用 `IRandomSource` |
 | `Phase` | フェーズ | 自軍・敵軍など、陣営ごとの行動順の区間 |
 | `Command` | コマンド | プレイヤー/AIの意図(`MoveUnit` など) |
 | `Event` | イベント | Domainが返す、起きた事実。Presentationが再生する |
