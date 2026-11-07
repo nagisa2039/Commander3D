@@ -1,7 +1,6 @@
 #include "Infrastructure/MapJsonParser.h"
 
-#include "Dom/JsonObject.h"
-#include "Dom/JsonValue.h"
+#include "Infrastructure/JsonReadHelpers.h"
 #include "Serialization/JsonReader.h"
 #include "Serialization/JsonSerializer.h"
 
@@ -10,33 +9,8 @@ namespace
 using commander::application::MapData;
 using commander::application::Result;
 using ParseResult = Result<MapData, EMapJsonError>;
-
-// Accepts only JSON numbers that are whole and fit in [Min, Max].
-bool ToInt(const TSharedPtr<FJsonValue>& Value, int64 Min, int64 Max, int64& Out)
-{
-	if (!Value.IsValid() || Value->Type != EJson::Number)
-	{
-		return false;
-	}
-	const double Number = Value->AsNumber();
-	if (Number != FMath::FloorToDouble(Number) || Number < static_cast<double>(Min) || Number > static_cast<double>(Max))
-	{
-		return false;
-	}
-	Out = static_cast<int64>(Number);
-	return true;
-}
-
-bool ReadInt32Field(const TSharedPtr<FJsonObject>& Object, const TCHAR* Name, int32& Out)
-{
-	int64 Wide = 0;
-	if (!ToInt(Object->TryGetField(Name), MIN_int32, MAX_int32, Wide))
-	{
-		return false;
-	}
-	Out = static_cast<int32>(Wide);
-	return true;
-}
+using JsonRead::ReadInt32Field;
+using JsonRead::ToInt;
 } // namespace
 
 commander::application::Result<commander::application::MapData, EMapJsonError> FMapJsonParser::Parse(const FString& JsonText)
