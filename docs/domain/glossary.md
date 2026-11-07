@@ -22,6 +22,8 @@
 | `BattleSetup` | 戦闘セットアップ | マップ・ユニット配置・勝利条件。`StartBattle` が検証して `Battle` にする |
 | `BattleSession` | 戦闘セッション | Command を受けて Event を返す唯一の窓口 |
 | `StdRandomSource` | 標準乱数源 | シード指定可能な本番用 `IRandomSource` |
+| `DecideNext` | 敵AIの次手決定 | 敵フェーズで次に出す Command を返す。プレイヤーと同じ Command 経路を使う |
+| `RunEnemyPhase` | 敵フェーズ実行 | `DecideNext` を繰り返し、フェーズ終了まで Event 列を返す |
 | `Phase` | フェーズ | 自軍・敵軍など、陣営ごとの行動順の区間 |
 | `Command` | コマンド | プレイヤー/AIの意図(`MoveUnit` など) |
 | `Event` | イベント | Domainが返す、起きた事実。Presentationが再生する |
