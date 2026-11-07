@@ -8,12 +8,12 @@ public class Commander3D : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 	
-		// No public headers expose these yet, so everything is Private. Move a module to Public
-		// only when a public header of this module needs its types.
+		// Public only for what public headers expose (MapJsonParser.h exposes CommanderApplication's MapData).
+		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CommanderApplication" });
+
 		PrivateDependencyModuleNames.AddRange(new string[]
 		{
-			"Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput",
-			"CommanderDomain", "CommanderApplication"
+			"CoreUObject", "Engine", "InputCore", "EnhancedInput", "Json", "CommanderDomain"
 		});
 	}
 }

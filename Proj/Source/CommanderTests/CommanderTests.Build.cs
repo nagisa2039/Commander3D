@@ -9,6 +9,6 @@ public class CommanderTests : ModuleRules
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 		CppStandard = CppStandardVersion.Cpp20;
 
-		PrivateDependencyModuleNames.AddRange(new string[] { "Core", "CommanderDomain", "CommanderApplication" });
+		PrivateDependencyModuleNames.AddRange(new string[] { "Core", "CommanderDomain", "CommanderApplication", "Commander3D" });
 	}
 }
