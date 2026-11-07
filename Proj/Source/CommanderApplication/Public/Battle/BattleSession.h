@@ -73,6 +73,11 @@ struct SellItemCommand
 	std::size_t Slot = 0;
 };
 
+struct OpenChestCommand
+{
+	domain::UnitId Unit; // must stand on a chest; ends its action
+};
+
 struct PromoteUnitCommand
 {
 	domain::UnitId Unit;
@@ -85,11 +90,11 @@ struct EndPhaseCommand
 };
 
 using BattleCommand = std::variant<MoveUnitCommand, WaitUnitCommand, AttackUnitCommand, EquipWeaponCommand, UseItemCommand, GiveItemCommand,
-	DropItemCommand, UseStaffCommand, BuyItemCommand, SellItemCommand, PromoteUnitCommand, EndPhaseCommand>;
+	DropItemCommand, UseStaffCommand, BuyItemCommand, SellItemCommand, OpenChestCommand, PromoteUnitCommand, EndPhaseCommand>;
 
 // Events: what happened, for Presentation to replay.
 using BattleEvent = std::variant<domain::UnitMoved, domain::UnitWaited, domain::AttackResolved, domain::WeaponEquipped, domain::ItemUsed,
-	domain::ItemGiven, domain::ItemDropped, domain::StaffUsed, domain::ItemBought, domain::ItemSold, domain::UnitPromoted, domain::PhaseChanged>;
+	domain::ItemGiven, domain::ItemDropped, domain::StaffUsed, domain::ItemBought, domain::ItemSold, domain::ChestOpened, domain::UnitPromoted, domain::PhaseChanged>;
 
 enum class CommandError
 {
@@ -138,6 +143,7 @@ private:
 	CommandResult Run(const UseStaffCommand& C) { return FromOptional(BattleState.UseStaff(C.Healer, C.Target, C.Slot, Rng)); }
 	CommandResult Run(const BuyItemCommand& C) { return FromOptional(BattleState.BuyItem(C.Unit, C.Entry)); }
 	CommandResult Run(const SellItemCommand& C) { return FromOptional(BattleState.SellItem(C.Unit, C.Slot)); }
+	CommandResult Run(const OpenChestCommand& C) { return FromOptional(BattleState.OpenChest(C.Unit)); }
 	CommandResult Run(const PromoteUnitCommand& C) { return FromOptional(BattleState.PromoteUnit(C.Unit, C.Option, C.SealSlot)); }
 	CommandResult Run(const EndPhaseCommand&) { return CommandResult::Ok(BattleEvent(BattleState.EndPhase())); }
 

@@ -19,6 +19,7 @@ struct BattleSetup
 	domain::VictoryConditions Conditions;
 	std::int32_t Gold = 0;           // the player army's starting gold
 	std::vector<domain::Shop> Shops;
+	std::vector<domain::Chest> Chests;
 };
 
 enum class BattleSetupError
@@ -26,6 +27,7 @@ enum class BattleSetupError
 	InvalidMap,
 	InvalidUnit,   // duplicate id, bad position (outside, wall, occupied) or inconsistent unit data
 	InvalidShop,   // negative gold, or a shop on a bad cell / on an occupied-by-another-shop cell / with bad or unpriced stock
+	InvalidChest,  // a chest on a bad cell / on a cell that already has a chest / holding nothing, both, or invalid things
 	NoPlayerUnit,
 	NoEnemyUnit,
 	NoBoss,        // DefeatBoss is on but no enemy-side unit has IsBoss
@@ -60,6 +62,13 @@ inline Result<domain::Battle, BattleSetupError> StartBattle(const BattleSetup& S
 		if (!B.AddShop(Shop))
 		{
 			return Outcome::Err(BattleSetupError::InvalidShop);
+		}
+	}
+	for (const domain::Chest& Chest : Setup.Chests)
+	{
+		if (!B.AddChest(Chest))
+		{
+			return Outcome::Err(BattleSetupError::InvalidChest);
 		}
 	}
 

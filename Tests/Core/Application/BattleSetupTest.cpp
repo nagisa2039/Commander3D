@@ -125,8 +125,32 @@ static void InvalidShopsAndGoldAreReported()
 	CHECK(StartBattle(S).Error() == BattleSetupError::InvalidShop);
 }
 
+static Chest GoldChestAt(std::int32_t X, std::int32_t Gold)
+{
+	Chest C;
+	C.Position = {X, 0};
+	C.Gold = Gold;
+	return C;
+}
+
+static void ChestsAreAppliedAndValidated()
+{
+	BattleSetup S = ValidSetup();
+	S.Chests = {GoldChestAt(1, 40)};
+	const auto R = StartBattle(S);
+	CHECK(R.IsOk() && R.Value().Chests().size() == 1);
+
+	S.Chests = {GoldChestAt(3, 40)}; // (3,0) is a wall
+	CHECK(StartBattle(S).Error() == BattleSetupError::InvalidChest);
+	S.Chests = {GoldChestAt(1, 0)}; // empty chest
+	CHECK(StartBattle(S).Error() == BattleSetupError::InvalidChest);
+	S.Chests = {GoldChestAt(1, 40), GoldChestAt(1, 40)};
+	CHECK(StartBattle(S).Error() == BattleSetupError::InvalidChest);
+}
+
 int main()
 {
+	ChestsAreAppliedAndValidated();
 	GoldAndShopsAreApplied();
 	InvalidShopsAndGoldAreReported();
 	ValidSetupStartsOngoingOnTurnOneWithPlayerPhase();

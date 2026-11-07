@@ -166,8 +166,27 @@ static void TradeStaffShopAndPromotionCommandsProduceTheirEvents()
 	CHECK(Session.Execute(DropItemCommand{UnitId{2}, 0}).Error() == CommandError::Rejected); // nothing left to drop
 }
 
+static void OpenChestCommandProducesItsEvent()
+{
+	AlwaysHit Rng;
+	Battle B = MakeBattle({Fighter(1, Faction::Player, 0, 20), Fighter(9, Faction::Enemy, 5, 20)});
+	Chest C;
+	C.Position = {1, 0};
+	C.Gold = 80;
+	B.AddChest(C);
+	BattleSession S(std::move(B), Rng);
+
+	CHECK(S.Execute(OpenChestCommand{UnitId{1}}).Error() == CommandError::Rejected); // not standing on it
+	CHECK(S.Execute(MoveUnitCommand{UnitId{1}, {1, 0}}).IsOk());
+	const auto Open = S.Execute(OpenChestCommand{UnitId{1}});
+	const auto* Opened = Open.IsOk() ? std::get_if<ChestOpened>(&Open.Value()) : nullptr;
+	CHECK(Opened != nullptr && Opened->Gold == 80 && Opened->Position == (GridCoord{1, 0}));
+	CHECK(S.GetBattle().Gold() == 80);
+}
+
 int main()
 {
+	OpenChestCommandProducesItsEvent();
 	TradeStaffShopAndPromotionCommandsProduceTheirEvents();
 	EquipAndUseItemProduceTheirEvents();
 	MoveReturnsUnitMovedEvent();
