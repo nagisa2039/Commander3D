@@ -38,25 +38,28 @@ Tests (after `CommanderTests` exists, unverified): `UnrealEditor-Cmd.exe <uproje
 
 ## Git state
 
-- Branch `main`, no upstream. `origin` = https://github.com/nagisa2039/Commander3D (public, user's personal repo).
-- `origin/main` (`0392931`) has **no common ancestor** with local `main`; its paths are `Commander3D/...` (no `Proj/`). A plain push will be rejected. History/push strategy is the user's decision.
-- `SecurityToken` (Android file server) was removed from `DefaultEngine.ini` but remains in all earlier commits, local and (probably) remote.
+- Branch `main`, upstream `origin/main`. `origin` = https://github.com/nagisa2039/Commander3D (public, user's personal repo).
+- 2026-11-07: local history was rewritten and force-pushed over `origin/main` (old `0392931`, paths `Commander3D/...`) at user's explicit request. Old remote commit may remain reachable by SHA on GitHub (UNVERIFIED). All commit hashes before that date changed; do not trust older hash references.
+- `SecurityToken=` lines were purged from all commits on `main`; generated dirs (`Proj/Intermediate|Saved|Binaries|DerivedDataCache|.vs`) were purged too (a >100MB file blocked the push). Never force-push or rewrite history again without explicit instruction.
 - `*.sln` / `*.slnx` are untracked and ignored (generated). `.gitignore` anchors `/Proj/Build/`.
-- `.gitattributes`: LF for source/config/data, CRLF for `.bat/.sln/.slnx`, LFS for UE binaries and common art/audio/video. LFS 3.7.1 installed; no files tracked by LFS yet.
-- `.claude/` is intentionally untracked. Scratch dirs: `.claude/temp/`, `.claude/output/`.
+- `.gitattributes`: LF for source/config/data, CRLF for `.bat/.sln/.slnx`, LFS for UE binaries and common art/audio/video. LFS 3.7.1 installed; `Proj/Content/Map/PL_Test.umap` is the first LFS-tracked file.
+- `.claude/` is tracked except scratch dirs (gitignored): `.claude/temp/`, `.claude/output/`.
 - Conventional Commits. One commit = one rule or one vertical slice. Keep refactor / feature / format / binary changes separate. Commit trailer: `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>`.
 
 ## Config state
 
-- `Config/DefaultEngine.ini`: still template defaults for `GameDefaultMap=/Engine/Maps/Templates/OpenWorld`, Lumen/RayTracing/Substrate enabled, DX12 SM6, `ActiveGameNameRedirects` from `TP_Blank`. No GameMode/startup map. Rendering features left as-is pending user decision.
+- `Config/DefaultEngine.ini`: `GameDefaultMap`/`EditorStartupMap` = `/Game/Map/PL_Test.PL_Test`; RayTracing and Substrate off; Lumen GI/Reflection and Virtual Shadow Maps on; DX12 SM6; `ActiveGameNameRedirects` from `TP_Blank`.
+- `Commander3D.uproject`: plugin `AndroidFileServer` disabled (editor regenerated its settings incl. SecurityToken).
 - `Config/DefaultInput.ini`: Enhanced Input classes; no legacy action/axis mappings.
 - `Config/DefaultGame.ini`: `ProjectID` only.
+- The editor rewrites `Proj/.vsconfig` and may regenerate ini sections; check `git status` after editor sessions.
 
-## Phase 0 progress
+## Progress
 
-Done (committed): 0-1 token removal / untrack sln / `.gitignore`; 0-2 `.gitattributes`; 0-3 `.vsconfig` + unused config cleanup; 0-4 root `CLAUDE.md`, `docs/`.
-Next: 0-5 `CommanderDomain` (empty + one UE-free class), 0-6 `Tests/Core` CMake + `GridCoord` test, 0-7 `Tools/CheckDomainPurity`, 0-8 `CommanderApplication`, 0-9 `CommanderTests`, 0-10 GitHub Actions.
-Pending: Build.cs Public/Private dependency cleanup (do with 0-5); `GameDefaultMap` (after a custom map exists); Lumen/RayTracing/Substrate decision.
+Phase 0 done except 0-10 (GitHub Actions; `ci.yml` was created then lost, not committed).
+Phase 1 done except 3D display: `Grid`, `BattleMap`, `MapLoader`, `FMapJsonParser` (JSON -> `MapData`). Master data lives in `Proj/Content/Data/` (maps: `Data/Maps/*.json`).
+Details: `.claude/knowledge/`.
+Rule: after implementing, run CTest AND the UE build + Automation (`Commander3D.Wiring`). Commit messages in Japanese; add knowledge at commit time.
 
 ## Handover
 
