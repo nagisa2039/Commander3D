@@ -26,6 +26,7 @@ bool FCommanderBattleMovementWiringTest::RunTest(const FString& Parameters)
 
 	Battle B(*Map);
 	TestTrue(TEXT("Unit added"), B.AddUnit(BattleUnit{UnitId{1}, Faction::Player, GridCoord{0, 0}, 3}));
+	TestTrue(TEXT("Enemy added"), B.AddUnit(BattleUnit{UnitId{2}, Faction::Enemy, GridCoord{0, 1}, 1}));
 	const auto Event = B.MoveUnit(UnitId{1}, GridCoord{2, 0});
 	TestTrue(TEXT("Move succeeds"), Event.has_value());
 	TestFalse(TEXT("Second move in the same phase rejected"), B.MoveUnit(UnitId{1}, GridCoord{1, 0}).has_value());
@@ -55,6 +56,22 @@ bool FCommanderBattleMovementWiringTest::RunTest(const FString& Parameters)
 	if (Attack.has_value())
 	{
 		TestTrue(TEXT("Target defeated"), Attack->Defeated.size() == 1 && C.FindUnit(UnitId{11}) == nullptr);
+		TestTrue(TEXT("Last enemy defeated wins"), Attack->Outcome == BattleOutcome::PlayerWon && C.Outcome() == BattleOutcome::PlayerWon);
 	}
+
+	// Victory conditions: turn limit and boss.
+	VictoryConditions Limited;
+	Limited.TurnLimit = 1;
+	Battle D(*Map, Limited);
+	D.AddUnit(BattleUnit{UnitId{20}, Faction::Player, GridCoord{0, 0}, 1});
+	D.AddUnit(BattleUnit{UnitId{21}, Faction::Enemy, GridCoord{2, 1}, 1});
+	D.EndPhase();
+	TestTrue(TEXT("Exceeding the turn limit loses"), D.EndPhase().Outcome == BattleOutcome::PlayerLost);
+
+	const std::vector<BattleUnit> WithBoss = {BattleUnit{UnitId{30}, Faction::Player, GridCoord{0, 0}, 1}};
+	VictoryConditions BossOnly;
+	BossOnly.RoutEnemies = false;
+	BossOnly.DefeatBoss = true;
+	TestTrue(TEXT("No boss left wins"), EvaluateOutcome(WithBoss, BossOnly, 1) == BattleOutcome::PlayerWon);
 	return true;
 }
