@@ -4,6 +4,7 @@
 
 #include "Battle/BattleSession.h"
 #include "Battle/BattleSetup.h"
+#include "Battle/EnemyAi.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FCommanderBattleSessionWiringTest,
@@ -40,6 +41,12 @@ bool FCommanderBattleSessionWiringTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Move command ok"), Moved.IsOk() && std::holds_alternative<UnitMoved>(Moved.Value()));
 	const CommandResult Rejected = Session.Execute(MoveUnitCommand{UnitId{1}, GridCoord{0, 0}});
 	TestTrue(TEXT("Second move rejected"), !Rejected.IsOk() && Rejected.Error() == CommandError::Rejected);
+
+	TestTrue(TEXT("Player phase ends"), Session.Execute(EndPhaseCommand{}).IsOk());
+	const std::vector<BattleEvent> EnemyEvents = RunEnemyPhase(Session);
+	TestTrue(TEXT("Enemy phase ends with PhaseChanged"),
+		!EnemyEvents.empty() && std::holds_alternative<PhaseChanged>(EnemyEvents.back())
+			&& Session.GetBattle().CurrentFaction() == Faction::Player);
 
 	Setup.Units.clear();
 	TestTrue(TEXT("No units rejected"), StartBattle(Setup).Error() == BattleSetupError::NoPlayerUnit);
