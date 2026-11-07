@@ -7,6 +7,7 @@
 
 #include "Battle/BattleMap.h"
 #include "Battle/BattleUnit.h"
+#include "Battle/Chest.h"
 #include "Battle/Combat.h"
 #include "Battle/MovementRange.h"
 #include "Battle/Progression.h"
@@ -100,6 +101,15 @@ struct UnitPromoted
 	bool UsedSeal = false;
 };
 
+// Event: a unit opened the chest at Position and got Item or Gold (the other is empty / 0).
+struct ChestOpened
+{
+	UnitId Unit;
+	GridCoord Position;
+	std::optional<ItemSlot> Item;
+	std::int32_t Gold = 0;
+};
+
 // One blow within an attack. DefenderHp is the defender's Hp after the blow.
 // WeaponBroke: the striker's weapon wore out with this blow (hit or miss).
 // WeaponRankUp: the blow trained the striker's weapon type into a higher rank.
@@ -179,6 +189,23 @@ public:
 			}
 		}
 		ShopList.push_back(NewShop);
+		return true;
+	}
+
+	const std::vector<Chest>& Chests() const { return ChestList; }
+
+	// Fails (false) if the cell is outside the grid or impassable, already has a chest, or the chest does not hold
+	// exactly one valid thing (an item passing IsItemSlotValid, or Gold > 0).
+	bool AddChest(const Chest& NewChest)
+	{
+		const TerrainSpec* Terrain = Map.TerrainAt(NewChest.Position);
+		const bool HasItem = NewChest.Item.has_value();
+		if (Terrain == nullptr || !Terrain->Passable || FindChest(NewChest.Position) != ChestList.end() || NewChest.Gold < 0
+			|| HasItem == (NewChest.Gold > 0) || (HasItem && !IsItemSlotValid(*NewChest.Item)))
+		{
+			return false;
+		}
+		ChestList.push_back(NewChest);
 		return true;
 	}
 
@@ -440,6 +467,34 @@ public:
 		return ItemSold{Id, Slot, Earned};
 	}
 
+	// A player unit standing on a chest opens it: the item goes into its pack or the gold into the army's gold, and
+	// the chest is removed. Ends the unit's action (it may move onto the chest first). Nullopt (state unchanged)
+	// if the unit is not actionable or not a player unit, there is no chest under it, or the chest holds an item and
+	// the pack is full.
+	std::optional<ChestOpened> OpenChest(UnitId Id)
+	{
+		BattleUnit* Unit = FindActionable(Id);
+		if (Unit == nullptr || Unit->Side != Faction::Player)
+		{
+			return std::nullopt;
+		}
+		const auto Here = FindChest(Unit->Position);
+		if (Here == ChestList.end() || (Here->Item.has_value() && Unit->Items.size() >= MaxItemSlots))
+		{
+			return std::nullopt;
+		}
+		ChestOpened Event{Id, Here->Position, Here->Item, Here->Gold};
+		if (Here->Item.has_value())
+		{
+			Unit->Items.push_back(*Here->Item);
+		}
+		GoldValue += Here->Gold;
+		ChestList.erase(Here);
+		Unit->HasMoved = true;
+		Unit->HasActed = true;
+		return Event;
+	}
+
 	// Changes class into the unit's promotion option Option: adds its stat bonuses (and movement), resets Level
 	// to 1 and Experience to 0, replaces Growth and Caps and removes all remaining options (a unit promotes once).
 	// Normally the unit must have reached the option's MinLevel. With SealSlot, the item in that slot must be a
@@ -578,6 +633,11 @@ public:
 	}
 
 private:
+	std::vector<Chest>::iterator FindChest(const GridCoord& Coord)
+	{
+		return std::find_if(ChestList.begin(), ChestList.end(), [&Coord](const Chest& C) { return C.Position == Coord; });
+	}
+
 	const Shop* FindShop(const GridCoord& Coord) const
 	{
 		for (const Shop& S : ShopList)
@@ -645,6 +705,7 @@ private:
 	VictoryConditions Conditions;
 	std::vector<BattleUnit> UnitList;
 	std::vector<Shop> ShopList;
+	std::vector<Chest> ChestList;
 	std::int32_t GoldValue = 0;
 	Faction CurrentFactionValue = Faction::Player;
 	std::int32_t Turn = 1;
