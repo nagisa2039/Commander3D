@@ -31,62 +31,92 @@ bool IsSafeName(const FString& Name)
 }
 } // namespace
 
+commander::application::Result<FBattleDataTables, EBattleLoadError> FBattleDataLoader::LoadTables(const FString& DataDir)
+{
+	using TablesResult = commander::application::Result<FBattleDataTables, EBattleLoadError>;
+	FString WeaponsText;
+	FString ItemsText;
+	FString ClassesText;
+	if (!FFileHelper::LoadFileToString(WeaponsText, *FPaths::Combine(DataDir, TEXT("Weapons.json")))
+		|| !FFileHelper::LoadFileToString(ItemsText, *FPaths::Combine(DataDir, TEXT("Items.json")))
+		|| !FFileHelper::LoadFileToString(ClassesText, *FPaths::Combine(DataDir, TEXT("Classes.json"))))
+	{
+		return TablesResult::Err(EBattleLoadError::FileNotReadable);
+	}
+
+	const auto Weapons = FWeaponJsonParser::Parse(WeaponsText);
+	if (!Weapons.IsOk())
+	{
+		return TablesResult::Err(EBattleLoadError::InvalidWeapons);
+	}
+	const auto Items = FItemJsonParser::Parse(ItemsText);
+	if (!Items.IsOk())
+	{
+		return TablesResult::Err(EBattleLoadError::InvalidItems);
+	}
+	const auto Classes = FClassJsonParser::Parse(ClassesText);
+	if (!Classes.IsOk())
+	{
+		return TablesResult::Err(EBattleLoadError::InvalidClasses);
+	}
+	FBattleDataTables Tables;
+	Tables.Weapons = Weapons.Value(); // the whole catalog: weapons, type ids, prices
+	Tables.Items = Items.Value();
+	Tables.Classes = Classes.Value();
+	return TablesResult::Ok(std::move(Tables));
+}
+
+commander::application::Result<FBattleDefinition, EBattleLoadError> FBattleDataLoader::LoadDefinition(
+	const FString& DataDir, const FBattleDataTables& Tables, const FString& SubDir, const FString& Name)
+{
+	using DefinitionResult = commander::application::Result<FBattleDefinition, EBattleLoadError>;
+	if (!IsSafeName(SubDir) || !IsSafeName(Name))
+	{
+		return DefinitionResult::Err(EBattleLoadError::InvalidName);
+	}
+
+	FString BattleText;
+	if (!FFileHelper::LoadFileToString(BattleText, *FPaths::Combine(DataDir, SubDir, Name + TEXT(".json"))))
+	{
+		return DefinitionResult::Err(EBattleLoadError::FileNotReadable);
+	}
+	const auto Battle = FBattleJsonParser::Parse(BattleText, Tables);
+	if (!Battle.IsOk() || !IsSafeName(Battle.Value().MapName))
+	{
+		return DefinitionResult::Err(EBattleLoadError::InvalidBattle);
+	}
+
+	FString MapText;
+	if (!FFileHelper::LoadFileToString(MapText, *FPaths::Combine(DataDir, TEXT("Maps"), Battle.Value().MapName + TEXT(".json"))))
+	{
+		return DefinitionResult::Err(EBattleLoadError::FileNotReadable);
+	}
+	const auto Map = FMapJsonParser::Parse(MapText);
+	if (!Map.IsOk())
+	{
+		return DefinitionResult::Err(EBattleLoadError::InvalidMap);
+	}
+
+	FBattleDefinition Definition = Battle.Value();
+	Definition.Setup.Map = Map.Value();
+	return DefinitionResult::Ok(std::move(Definition));
+}
+
 commander::application::Result<BattleSetup, EBattleLoadError> FBattleDataLoader::Load(const FString& DataDir, const FString& BattleName)
 {
 	if (!IsSafeName(BattleName))
 	{
 		return LoadResult::Err(EBattleLoadError::InvalidName);
 	}
-
-	FString WeaponsText;
-	FString ItemsText;
-	FString ClassesText;
-	FString BattleText;
-	if (!FFileHelper::LoadFileToString(WeaponsText, *FPaths::Combine(DataDir, TEXT("Weapons.json")))
-		|| !FFileHelper::LoadFileToString(ItemsText, *FPaths::Combine(DataDir, TEXT("Items.json")))
-		|| !FFileHelper::LoadFileToString(ClassesText, *FPaths::Combine(DataDir, TEXT("Classes.json")))
-		|| !FFileHelper::LoadFileToString(BattleText, *FPaths::Combine(DataDir, TEXT("Battles"), BattleName + TEXT(".json"))))
+	const auto Tables = LoadTables(DataDir);
+	if (!Tables.IsOk())
 	{
-		return LoadResult::Err(EBattleLoadError::FileNotReadable);
+		return LoadResult::Err(Tables.Error());
 	}
-
-	const auto Weapons = FWeaponJsonParser::Parse(WeaponsText);
-	if (!Weapons.IsOk())
+	const auto Definition = LoadDefinition(DataDir, Tables.Value(), TEXT("Battles"), BattleName);
+	if (!Definition.IsOk())
 	{
-		return LoadResult::Err(EBattleLoadError::InvalidWeapons);
+		return LoadResult::Err(Definition.Error());
 	}
-	const auto Items = FItemJsonParser::Parse(ItemsText);
-	if (!Items.IsOk())
-	{
-		return LoadResult::Err(EBattleLoadError::InvalidItems);
-	}
-	const auto Classes = FClassJsonParser::Parse(ClassesText);
-	if (!Classes.IsOk())
-	{
-		return LoadResult::Err(EBattleLoadError::InvalidClasses);
-	}
-	FBattleDataTables Tables;
-	Tables.Weapons = Weapons.Value(); // the whole catalog: weapons, type ids, prices
-	Tables.Items = Items.Value();
-	Tables.Classes = Classes.Value();
-	const auto Battle = FBattleJsonParser::Parse(BattleText, Tables);
-	if (!Battle.IsOk() || !IsSafeName(Battle.Value().MapName))
-	{
-		return LoadResult::Err(EBattleLoadError::InvalidBattle);
-	}
-
-	FString MapText;
-	if (!FFileHelper::LoadFileToString(MapText, *FPaths::Combine(DataDir, TEXT("Maps"), Battle.Value().MapName + TEXT(".json"))))
-	{
-		return LoadResult::Err(EBattleLoadError::FileNotReadable);
-	}
-	const auto Map = FMapJsonParser::Parse(MapText);
-	if (!Map.IsOk())
-	{
-		return LoadResult::Err(EBattleLoadError::InvalidMap);
-	}
-
-	BattleSetup Setup = Battle.Value().Setup;
-	Setup.Map = Map.Value();
-	return LoadResult::Ok(std::move(Setup));
+	return LoadResult::Ok(Definition.Value().Setup);
 }

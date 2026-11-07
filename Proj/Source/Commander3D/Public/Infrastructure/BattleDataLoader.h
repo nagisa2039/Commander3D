@@ -4,6 +4,7 @@
 
 #include "Battle/BattleSetup.h"
 #include "Common/Result.h"
+#include "Infrastructure/BattleJsonParser.h"
 
 enum class EBattleLoadError : uint8
 {
@@ -22,6 +23,13 @@ enum class EBattleLoadError : uint8
 class COMMANDER3D_API FBattleDataLoader
 {
 public:
+	// Reads and parses <DataDir>/Weapons.json, Items.json and Classes.json.
+	static commander::application::Result<FBattleDataTables, EBattleLoadError> LoadTables(const FString& DataDir);
+
+	// Reads <DataDir>/<SubDir>/<Name>.json and the map it names; Setup.Map is filled. Name and SubDir are file-name safe.
+	static commander::application::Result<FBattleDefinition, EBattleLoadError> LoadDefinition(
+		const FString& DataDir, const FBattleDataTables& Tables, const FString& SubDir, const FString& Name);
+
 	static commander::application::Result<commander::application::BattleSetup, EBattleLoadError> Load(
 		const FString& DataDir, const FString& BattleName);
 };
