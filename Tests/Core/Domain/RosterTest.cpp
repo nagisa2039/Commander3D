@@ -152,6 +152,40 @@ static void TestEquipWeapon()
 	CHECK(R.Find(UnitId{2})->Items.empty());
 }
 
+static void TestBuyAndSell()
+{
+	ItemSlot Stocked = Potion();
+	Stocked.Price = 300;
+	const std::vector<ItemSlot> Stock = {Stocked};
+
+	Roster R;
+	R.Add(Member(1));
+	R.SetGold(500);
+
+	CHECK(R.BuyItem(UnitId{1}, Stock, 0));
+	CHECK(R.Gold() == 200);
+	CHECK(R.Find(UnitId{1})->Items.size() == 1);
+	CHECK(!R.BuyItem(UnitId{1}, Stock, 0)); // 200 gold is not enough
+	CHECK(R.Gold() == 200);
+	CHECK(!R.BuyItem(UnitId{1}, Stock, 3)); // no such entry
+	CHECK(!R.BuyItem(UnitId{9}, Stock, 0)); // unknown member
+
+	CHECK(R.SellItem(UnitId{1}, 0));        // half of 300
+	CHECK(R.Gold() == 350);
+	CHECK(R.Find(UnitId{1})->Items.empty());
+	CHECK(!R.SellItem(UnitId{1}, 0));       // nothing left
+	CHECK(!R.SellItem(UnitId{9}, 0));
+
+	// a full pack cannot buy; an unpriced item cannot be sold
+	BattleUnit Full = Member(2);
+	Full.Items = {Potion(), Potion(), Potion(), Potion(), Potion()};
+	R.Add(Full);
+	R.SetGold(1000);
+	CHECK(!R.BuyItem(UnitId{2}, Stock, 0));
+	CHECK(!R.SellItem(UnitId{2}, 0)); // Potion() has Price 0
+	CHECK(R.Gold() == 1000);
+}
+
 static void TestApplyBattleResultKeepsProgress()
 {
 	Roster R;
@@ -218,6 +252,7 @@ int main()
 	TestDeploy();
 	TestItemOrganizing();
 	TestEquipWeapon();
+	TestBuyAndSell();
 	TestApplyBattleResultKeepsProgress();
 	TestDeadUnits();
 	return TEST_MAIN_RESULT();

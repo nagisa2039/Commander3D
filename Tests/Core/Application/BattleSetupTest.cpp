@@ -148,8 +148,28 @@ static void ChestsAreAppliedAndValidated()
 	CHECK(StartBattle(S).Error() == BattleSetupError::InvalidChest);
 }
 
+static void PreparationStockIsValidated()
+{
+	ItemSlot Priced;
+	Priced.Kind = ItemKind::Potion;
+	Priced.Uses = 1;
+	Priced.Amount = 5;
+	Priced.Price = 50;
+
+	BattleSetup S = ValidSetup();
+	S.PreparationStock = {Priced};
+	CHECK(StartBattle(S).IsOk());
+
+	S.PreparationStock = {ItemSlot{}}; // an invalid weapon slot
+	CHECK(StartBattle(S).Error() == BattleSetupError::InvalidShop);
+	Priced.Price = 0; // not for sale
+	S.PreparationStock = {Priced};
+	CHECK(StartBattle(S).Error() == BattleSetupError::InvalidShop);
+}
+
 int main()
 {
+	PreparationStockIsValidated();
 	ChestsAreAppliedAndValidated();
 	GoldAndShopsAreApplied();
 	InvalidShopsAndGoldAreReported();

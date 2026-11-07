@@ -350,6 +350,21 @@ commander::application::Result<FBattleDefinition, EBattleJsonError> FBattleJsonP
 	{
 		return ParseResult::Err(ShopError);
 	}
+	TArray<FString> StockIds;
+	if (!JsonRead::ReadOptionalStringArrayField(Root, TEXT("preparationStock"), StockIds))
+	{
+		return ParseResult::Err(EBattleJsonError::InvalidField);
+	}
+	for (const FString& StockId : StockIds)
+	{
+		ItemSlot Slot;
+		if (!ResolveItem(Tables, StockId, Slot))
+		{
+			return ParseResult::Err(EBattleJsonError::UnknownItem);
+		}
+		Definition.Setup.PreparationStock.push_back(Slot);
+	}
+
 	const EBattleJsonError ChestError = ReadChests(Root, Tables, Definition.Setup.Chests);
 	if (ChestError != EBattleJsonError::None)
 	{

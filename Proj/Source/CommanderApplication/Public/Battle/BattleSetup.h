@@ -20,13 +20,14 @@ struct BattleSetup
 	std::int32_t Gold = 0;           // the player army's starting gold
 	std::vector<domain::Shop> Shops;
 	std::vector<domain::Chest> Chests;
+	std::vector<domain::ItemSlot> PreparationStock; // what the pre-battle preparation shop sells (see Preparation); may be empty
 };
 
 enum class BattleSetupError
 {
 	InvalidMap,
 	InvalidUnit,   // duplicate id, bad position (outside, wall, occupied) or inconsistent unit data
-	InvalidShop,   // negative gold, or a shop on a bad cell / on an occupied-by-another-shop cell / with bad or unpriced stock
+	InvalidShop,   // negative gold, a bad preparation stock entry, or a shop on a bad cell / on an occupied-by-another-shop cell / with bad or unpriced stock
 	InvalidChest,  // a chest on a bad cell / on a cell that already has a chest / holding nothing, both, or invalid things
 	NoPlayerUnit,
 	NoEnemyUnit,
@@ -60,6 +61,13 @@ inline Result<domain::Battle, BattleSetupError> StartBattle(const BattleSetup& S
 	for (const domain::Shop& Shop : Setup.Shops)
 	{
 		if (!B.AddShop(Shop))
+		{
+			return Outcome::Err(BattleSetupError::InvalidShop);
+		}
+	}
+	for (const domain::ItemSlot& Item : Setup.PreparationStock)
+	{
+		if (!domain::IsItemSlotValid(Item) || Item.Price <= 0)
 		{
 			return Outcome::Err(BattleSetupError::InvalidShop);
 		}

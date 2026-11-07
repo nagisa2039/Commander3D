@@ -44,6 +44,7 @@ bool FCommanderCampaignLoaderTest::RunTest(const FString& Parameters)
 
 	// The whole flow: campaign -> preparation -> battle.
 	application::Campaign Run(Definition.InitialRoster, domain::Difficulty::Classic, Definition.Chapters);
+	TestEqual(TEXT("Preparation shop stock"), static_cast<int32>(Run.Preparation().Stock().size()), 3);
 	TestTrue(TEXT("Deploy 1"), Run.Preparation().Deploy(domain::UnitId{1}));
 	TestTrue(TEXT("Deploy 2"), Run.Preparation().Deploy(domain::UnitId{2}));
 	const auto Started = Run.Preparation().Start();

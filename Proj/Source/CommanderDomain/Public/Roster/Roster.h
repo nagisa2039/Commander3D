@@ -84,6 +84,22 @@ public:
 		return true;
 	}
 
+	// The member buys Stock[Entry] with the roster's gold (see BuyFromStock). False (unchanged) if the member or entry
+	// is missing, the pack is full or gold is short.
+	bool BuyItem(UnitId Id, const std::vector<ItemSlot>& Stock, std::size_t Entry)
+	{
+		const auto It = FindIt(Id);
+		return It != MemberList.end() && BuyFromStock(*It, GoldValue, Stock, Entry).has_value();
+	}
+
+	// The member sells the item in the slot for half its price (see SellFromPack). False (unchanged) if the member or
+	// slot is missing or the item has no price.
+	bool SellItem(UnitId Id, std::size_t Slot)
+	{
+		const auto It = FindIt(Id);
+		return It != MemberList.end() && SellFromPack(*It, GoldValue, Slot).has_value();
+	}
+
 	// Throws away the item in the slot. False if the member or slot is missing.
 	bool DiscardItem(UnitId Id, std::size_t Slot)
 	{

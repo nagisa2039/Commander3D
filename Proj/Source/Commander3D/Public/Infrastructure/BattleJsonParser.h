@@ -54,6 +54,7 @@ struct FBattleDefinition
 //                "boss": false } ],         // optional
 //   "gold": 500,                            // optional: the player army's gold
 //   "shops": [ { "x": 2, "y": 1, "stock": ["vulnerary", "iron_sword"] } ],  // optional; ids as in "items"
+//   "preparationStock": ["vulnerary", "iron_sword"],   // optional: what the pre-battle preparation shop sells; ids as in "items"
 //   "chests": [ { "x": 3, "y": 1, "item": "vulnerary" }, { "x": 4, "y": 2, "gold": 300 } ],   // optional; exactly one of "item" (id as in "items") and "gold" per chest
 //   "name": "Chapter 1",                   // optional: chapter title
 //   "startCells": [ {"x": 0, "y": 0} ]      // optional: sortie start cells of a chapter, in deploy order

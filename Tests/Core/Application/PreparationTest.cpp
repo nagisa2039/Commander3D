@@ -130,6 +130,42 @@ static void DiscardIsAvailable()
 	CHECK(!P.DiscardItem(UnitId{1}, 0));
 }
 
+static Preparation MakeWithStock()
+{
+	ItemSlot Priced = Potion();
+	Priced.Price = 100;
+	BattleSetup S = BaseSetup();
+	S.PreparationStock = {Priced};
+	return Preparation(MakeRoster(), S, {GridCoord{0, 0}, GridCoord{1, 0}});
+}
+
+static void ShoppingUsesTheRosterGoldAndStock()
+{
+	Preparation P = MakeWithStock(); // roster gold 120
+	CHECK(P.Stock().size() == 1);
+	CHECK(P.BuyItem(UnitId{2}, 0));
+	CHECK(P.Roster().Gold() == 20);
+	CHECK(P.Roster().Find(UnitId{2})->Items.size() == 1);
+	CHECK(!P.BuyItem(UnitId{2}, 0)); // short of gold
+	CHECK(!P.BuyItem(UnitId{2}, 4)); // no such entry
+	CHECK(P.SellItem(UnitId{2}, 0)); // half of 100
+	CHECK(P.Roster().Gold() == 70);
+
+	// what was bought is taken into the battle, along with the remaining gold
+	CHECK(!P.BuyItem(UnitId{1}, 0)); // 70 gold is short of 100
+	P.Deploy(UnitId{2});
+	const auto R = P.Start();
+	CHECK(R.IsOk());
+	CHECK(R.Value().Battle.Gold() == 70);
+}
+
+static void NoStockMeansNoShopping()
+{
+	Preparation P = Make();
+	CHECK(P.Stock().empty());
+	CHECK(!P.BuyItem(UnitId{1}, 0));
+}
+
 static void BadSetupIsReported()
 {
 	BattleSetup S = BaseSetup();
@@ -161,6 +197,8 @@ int main()
 	StartPlacesDeployedUnitsOnStartCellsInOrder();
 	ItemChangesCarryIntoTheBattle();
 	DiscardIsAvailable();
+	ShoppingUsesTheRosterGoldAndStock();
+	NoStockMeansNoShopping();
 	BadSetupIsReported();
 	FinishCarriesResultBackToTheRoster();
 	return TEST_MAIN_RESULT();

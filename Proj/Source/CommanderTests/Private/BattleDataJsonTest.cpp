@@ -282,6 +282,15 @@ bool FCommanderBattleJsonValidTest::RunTest(const FString& Parameters)
 		TestEqual(TEXT("bow rank 1 = its threshold"), Trained.WeaponPoints[2], commander::domain::RankThreshold[1]);
 	}
 
+	// Preparation shop stock: weapon ids or item ids, priced from the tables.
+	const auto WithStock = FBattleJsonParser::Parse(FString(TEXT(R"({"map":"m","units":[],"preparationStock":["sword","potion"]})")), Tables());
+	if (TestTrue(TEXT("Preparation stock parses"), WithStock.IsOk()) && TestEqual(TEXT("Stock size"), static_cast<int32>(WithStock.Value().Setup.PreparationStock.size()), 2))
+	{
+		const auto& Stock = WithStock.Value().Setup.PreparationStock;
+		TestTrue(TEXT("Weapon stock is priced from the catalog"), Stock[0].Kind == ItemKind::Weapon && Stock[0].Price == 500);
+		TestTrue(TEXT("Item stock is priced"), Stock[1].Kind == ItemKind::Potion && Stock[1].Price == 300);
+	}
+
 	// Chests: an item id (weapon or item) or gold.
 	const auto WithChests = FBattleJsonParser::Parse(
 		FString(TEXT(R"({"map":"m","units":[],"chests":[{"x":1,"y":2,"item":"potion"},{"x":3,"y":0,"gold":120},{"x":4,"y":0,"item":"sword"}]})")), Tables());
@@ -374,6 +383,11 @@ bool FCommanderBattleJsonErrorsTest::RunTest(const FString& Parameters)
 		BattleErrorOf(TEXT(R"({"map":"m","units":[],"shops":[{"x":1,"y":1}]})")) == EBattleJsonError::InvalidField);
 	TestTrue(TEXT("Unknown stock id"),
 		BattleErrorOf(TEXT(R"({"map":"m","units":[],"shops":[{"x":1,"y":1,"stock":["elixir"]}]})")) == EBattleJsonError::UnknownItem);
+	TestTrue(TEXT("preparationStock must be an array of strings"),
+		BattleErrorOf(TEXT(R"({"map":"m","units":[],"preparationStock":[1]})")) == EBattleJsonError::InvalidField);
+	TestTrue(TEXT("preparationStock must be an array"), BattleErrorOf(TEXT(R"({"map":"m","units":[],"preparationStock":"potion"})")) == EBattleJsonError::InvalidField);
+	TestTrue(TEXT("Unknown preparation stock id"),
+		BattleErrorOf(TEXT(R"({"map":"m","units":[],"preparationStock":["elixir"]})")) == EBattleJsonError::UnknownItem);
 	TestTrue(TEXT("chests must be an array"), BattleErrorOf(TEXT(R"({"map":"m","units":[],"chests":{}})")) == EBattleJsonError::InvalidField);
 	TestTrue(TEXT("chest needs a position"), BattleErrorOf(TEXT(R"({"map":"m","units":[],"chests":[{"x":1,"gold":5}]})")) == EBattleJsonError::InvalidField);
 	TestTrue(TEXT("chest needs item or gold"), BattleErrorOf(TEXT(R"({"map":"m","units":[],"chests":[{"x":1,"y":1}]})")) == EBattleJsonError::InvalidField);

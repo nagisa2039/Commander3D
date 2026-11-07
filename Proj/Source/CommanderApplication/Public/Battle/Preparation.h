@@ -61,6 +61,14 @@ public:
 		return true;
 	}
 
+	// The items the chapter's preparation shop sells (never runs out; each Price is the buying price). May be empty.
+	const std::vector<domain::ItemSlot>& Stock() const { return Base.PreparationStock; }
+
+	// Shopping with the roster's gold; items are sold for half their price. False if the member or entry/slot is
+	// missing, the pack is full, gold is short, or the item has no price.
+	bool BuyItem(domain::UnitId Id, std::size_t Entry) { return RosterState.BuyItem(Id, Base.PreparationStock, Entry); }
+	bool SellItem(domain::UnitId Id, std::size_t Slot) { return RosterState.SellItem(Id, Slot); }
+
 	bool EquipWeapon(domain::UnitId Id, std::size_t Slot) { return RosterState.EquipWeapon(Id, Slot); }
 	bool TransferItem(domain::UnitId From, domain::UnitId To, std::size_t Slot) { return RosterState.TransferItem(From, To, Slot); }
 	bool DiscardItem(domain::UnitId Id, std::size_t Slot) { return RosterState.DiscardItem(Id, Slot); }
