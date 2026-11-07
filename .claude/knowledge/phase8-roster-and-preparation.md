@@ -16,3 +16,9 @@ Phase 8 = Roster / Campaign / save. This is the first part: persistent army + pr
 - Shopping in the preparation screen (shop logic exists only in battle).
 - Start cells / deploy limit are constructor arguments; chapter JSON (8c) must supply them.
 - Equip rule is duplicated in `Roster` and `Battle` (second use now exists; consider extracting a shared helper in a refactor commit).
+
+## Update: Campaign (8b)
+- `Battle/Campaign.h` (Application): `Chapter {Name, Setup, StartCells}`, `Campaign(roster, difficulty, chapters)`. `Preparation()` is created lazily per chapter; `Roster()` includes item changes made in the current preparation. `Complete(battle, sortied)` -> `CampaignStep {BattleOngoing, Retry, NextChapter, CampaignCleared}`.
+- Z4: on a loss nothing from the battle is applied (retry), but item changes made in the preparation stay. Win: `Preparation::Finish` then the next chapter gets a fresh preparation.
+- Z5: `Preparation()` / `CurrentChapter()` / `Complete()` require `!IsFinished()` (assert only, no Result).
+- `CampaignTest` (9 cases); CTest 20/20. Chapter JSON and save/load (8c) and in-battle pickups (8e) still not done.
