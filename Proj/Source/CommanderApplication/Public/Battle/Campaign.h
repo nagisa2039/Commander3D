@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <cassert>
 #include <cstddef>
 #include <optional>
@@ -36,8 +37,9 @@ enum class CampaignStep
 class Campaign
 {
 public:
-	Campaign(domain::Roster InRoster, domain::Difficulty InDifficulty, std::vector<Chapter> InChapters)
-		: RosterState(std::move(InRoster)), Mode(InDifficulty), Chapters(std::move(InChapters))
+	// StartIndex resumes at a later chapter (a loaded save); past the last chapter it is clamped to "finished".
+	Campaign(domain::Roster InRoster, domain::Difficulty InDifficulty, std::vector<Chapter> InChapters, std::size_t StartIndex = 0)
+		: RosterState(std::move(InRoster)), Mode(InDifficulty), Chapters(std::move(InChapters)), Index(std::min(StartIndex, Chapters.size()))
 	{
 	}
 
@@ -92,7 +94,7 @@ private:
 	domain::Roster RosterState;
 	domain::Difficulty Mode;
 	std::vector<Chapter> Chapters;
-	std::size_t Index = 0;
+	std::size_t Index;
 	std::optional<application::Preparation> Prep;
 };
 

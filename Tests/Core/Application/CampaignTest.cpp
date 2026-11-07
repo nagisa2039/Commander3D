@@ -85,6 +85,20 @@ static void EmptyCampaignIsFinished()
 	CHECK(C.IsFinished());
 }
 
+static void CanResumeAtALaterChapter()
+{
+	Campaign Second(MakeRoster(), Difficulty::Casual, {MakeChapter("one"), MakeChapter("two")}, 1);
+	CHECK(Second.ChapterIndex() == 1);
+	CHECK(Second.CurrentChapter().Name == "two");
+	CHECK(Second.Difficulty() == Difficulty::Casual);
+
+	Campaign Done(MakeRoster(), Difficulty::Classic, {MakeChapter("one"), MakeChapter("two")}, 2);
+	CHECK(Done.IsFinished());
+
+	Campaign TooFar(MakeRoster(), Difficulty::Classic, {MakeChapter("one")}, 99); // clamped to the end
+	CHECK(TooFar.IsFinished() && TooFar.ChapterIndex() == 1);
+}
+
 static void PreparationIsKeptBetweenCalls()
 {
 	Campaign C = Make();
@@ -178,6 +192,7 @@ int main()
 {
 	StartsAtFirstChapter();
 	EmptyCampaignIsFinished();
+	CanResumeAtALaterChapter();
 	PreparationIsKeptBetweenCalls();
 	WinAdvancesToTheNextChapter();
 	WinningTheLastChapterClearsTheCampaign();
