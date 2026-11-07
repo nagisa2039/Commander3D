@@ -41,6 +41,7 @@ public:
 	Campaign(domain::Roster InRoster, domain::Difficulty InDifficulty, std::vector<Chapter> InChapters, std::size_t StartIndex = 0)
 		: RosterState(std::move(InRoster)), Mode(InDifficulty), Chapters(std::move(InChapters)), Index(std::min(StartIndex, Chapters.size()))
 	{
+		BeginChapter();
 	}
 
 	bool IsFinished() const { return Index >= Chapters.size(); }
@@ -57,14 +58,15 @@ public:
 	// The roster including item changes already made in the current preparation.
 	const domain::Roster& Roster() const { return Prep ? Prep->Roster() : RosterState; }
 
-	// The current chapter's preparation (created on first use). Requires !IsFinished().
+	// The current chapter's preparation (a fresh one is made when a chapter begins). Requires !IsFinished().
 	Preparation& Preparation()
 	{
 		assert(!IsFinished());
-		if (!Prep)
-		{
-			Prep.emplace(RosterState, Chapters[Index].Setup, Chapters[Index].StartCells);
-		}
+		return *Prep;
+	}
+	const application::Preparation& Preparation() const
+	{
+		assert(!IsFinished());
 		return *Prep;
 	}
 
@@ -87,10 +89,20 @@ public:
 		RosterState = Prep->Roster();
 		Prep.reset();
 		++Index;
+		BeginChapter();
 		return IsFinished() ? CampaignStep::CampaignCleared : CampaignStep::NextChapter;
 	}
 
 private:
+	// Starts the current chapter's preparation from the roster (nothing when the campaign is finished).
+	void BeginChapter()
+	{
+		if (!IsFinished())
+		{
+			Prep.emplace(RosterState, Chapters[Index].Setup, Chapters[Index].StartCells);
+		}
+	}
+
 	domain::Roster RosterState;
 	domain::Difficulty Mode;
 	std::vector<Chapter> Chapters;
