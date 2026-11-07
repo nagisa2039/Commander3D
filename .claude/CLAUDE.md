@@ -7,6 +7,7 @@ Environment and operating notes for Claude Code. Project rules live in the root 
 - **Do not run `git commit` or `git push` unless the user explicitly asks in the current turn.** Leave changes in the working tree and propose commit message/split instead. Earlier approvals do not carry over.
 - Never rewrite history or force-push without explicit instruction. The remote history is unrelated to local history (see Git state).
 - Do not claim anything unverified. Mark unchecked points as "unverified".
+- Prefer the dedicated tools (Read / Write / Edit / Glob / Grep) for reading, writing, creating, and searching files. Do not use shell commands (`cat`, `sed -i`, `echo >`, heredocs, `python` one-liners, etc.) for file operations unless the dedicated tools cannot do the job.
 
 ## Layout
 

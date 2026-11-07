@@ -16,6 +16,8 @@
       "PowerShell(Measure-Object *)",
       "PowerShell(Get-FileHash *)",
       "PowerShell(Get-Date *)",
+      "Bash(python Tools/*)",
+      "Bash(rg *)",
       "Bash(dotnet --list-sdks)",
       "Bash(dotnet --list-runtimes)",
       "PowerShell(dotnet --list-sdks)",
