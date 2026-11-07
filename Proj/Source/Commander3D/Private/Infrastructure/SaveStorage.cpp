@@ -66,7 +66,7 @@ ESaveError FSaveStorage::Save(const FString& DataDir, const FString& SaveDir, co
 	return ESaveError::None;
 }
 
-commander::application::Result<Campaign, ESaveError> FSaveStorage::Load(const FString& DataDir, const FString& SaveDir, const FString& Slot)
+commander::application::Result<Campaign, ESaveError> FSaveStorage::Load(const FString& DataDir, const FString& SaveDir, const FString& Slot, FString* OutCampaignName)
 {
 	if (!IsSafeName(Slot))
 	{
@@ -95,6 +95,10 @@ commander::application::Result<Campaign, ESaveError> FSaveStorage::Load(const FS
 	if (static_cast<size_t>(Data.Value().ChapterIndex) > Definition.Value().Chapters.size())
 	{
 		return LoadResult::Err(ESaveError::InvalidSave);
+	}
+	if (OutCampaignName != nullptr)
+	{
+		*OutCampaignName = Data.Value().CampaignName;
 	}
 	return LoadResult::Ok(Campaign(Data.Value().Roster, Data.Value().Difficulty, Definition.Value().Chapters,
 		static_cast<size_t>(Data.Value().ChapterIndex)));

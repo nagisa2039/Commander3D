@@ -23,6 +23,7 @@ public:
 	static ESaveError Save(const FString& DataDir, const FString& SaveDir, const FString& Slot, const FString& CampaignName,
 		const commander::application::Campaign& Run);
 
+	// OutCampaignName (optional) receives the name of the campaign the save belongs to.
 	static commander::application::Result<commander::application::Campaign, ESaveError> Load(
-		const FString& DataDir, const FString& SaveDir, const FString& Slot);
+		const FString& DataDir, const FString& SaveDir, const FString& Slot, FString* OutCampaignName = nullptr);
 };
