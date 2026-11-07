@@ -1,0 +1,6 @@
+{
+	"weapons": [
+		{"id": "iron_sword", "might": 5, "hit": 90, "minRange": 1, "maxRange": 1},
+		{"id": "iron_bow", "might": 4, "hit": 80, "minRange": 2, "maxRange": 2}
+	]
+}

@@ -1,0 +1,10 @@
+{
+	"map": "test_map",
+	"conditions": {"routEnemies": true, "defeatBoss": true, "turnLimit": 20},
+	"units": [
+		{"id": 1, "side": "player", "x": 0, "y": 0, "movement": 5, "hp": 18, "strength": 5, "skill": 4, "speed": 6, "defense": 2, "weapon": "iron_sword"},
+		{"id": 2, "side": "player", "x": 0, "y": 2, "movement": 4, "hp": 14, "strength": 3, "skill": 6, "speed": 5, "defense": 1, "weapon": "iron_bow"},
+		{"id": 101, "side": "enemy", "x": 4, "y": 0, "movement": 3, "hp": 22, "strength": 6, "skill": 3, "speed": 3, "defense": 4, "weapon": "iron_sword", "boss": true},
+		{"id": 102, "side": "enemy", "x": 4, "y": 2, "movement": 4, "hp": 16, "strength": 4, "skill": 2, "speed": 4, "defense": 1, "weapon": "iron_sword"}
+	]
+}
